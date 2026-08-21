@@ -17,11 +17,11 @@ const TABS = [
 
 function InfoRow({ label, value, icon: Icon }) {
   return (
-    <div className="flex items-start gap-3 py-3 border-b border-white/[0.04] last:border-0">
-      {Icon && <Icon size={16} className="text-gray-500 mt-0.5 flex-shrink-0" />}
+    <div className="flex items-start gap-3 py-3 border-b border-slate-100 last:border-0">
+      {Icon && <Icon size={16} className="text-[#145DA0] mt-0.5 flex-shrink-0" />}
       <div className="flex-1 min-w-0">
-        <p className="text-xs text-gray-500 mb-0.5">{label}</p>
-        <p className="text-sm text-gray-100 font-medium">{value || '—'}</p>
+        <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">{label}</p>
+        <p className="text-xs text-[#172033] font-bold">{value || '—'}</p>
       </div>
     </div>
   );
@@ -102,12 +102,12 @@ export default function EmployeeDetail() {
   const handlePersonalSave = async () => {
     setPersonalLoading(true);
     try {
-      const res = await api.put(`/employees/${id}`, personalForm);
-      setEmployee(res.data?.data || res.data);
-      setEditingPersonal(false);
+      await api.put(`/employees/${id}`, personalForm);
       toast.success('Personal info updated');
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to update');
+      setEditingPersonal(false);
+      fetchEmployee();
+    } catch {
+      toast.error('Failed to update personal info');
     } finally {
       setPersonalLoading(false);
     }
@@ -116,13 +116,15 @@ export default function EmployeeDetail() {
   const handleSalarySave = async () => {
     setSalaryLoading(true);
     try {
-      const payload = { ...salaryForm, employeeId: id };
-      const res = await api.post('/payroll/salary', payload);
-      setSalary(res.data?.data || res.data);
+      await api.put(`/payroll/salary/${id}`, {
+        employeeId: id,
+        ...salaryForm,
+      });
+      toast.success('Salary updated');
       setEditingSalary(false);
-      toast.success('Salary structure saved');
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to save salary');
+      fetchSalary();
+    } catch {
+      toast.error('Failed to save salary');
     } finally {
       setSalaryLoading(false);
     }
@@ -130,85 +132,74 @@ export default function EmployeeDetail() {
 
   if (loading) {
     return (
-      <div className="p-6">
-        <div className="flex items-center gap-4 mb-6">
-          <div className="skeleton w-8 h-8 rounded-xl" />
-          <div className="skeleton h-8 w-48 rounded-xl" />
-        </div>
-        <div className="skeleton h-40 rounded-2xl mb-6" />
-        <div className="skeleton h-96 rounded-2xl" />
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="w-8 h-8 text-[#145DA0] animate-spin" />
       </div>
     );
   }
 
   if (!employee) {
     return (
-      <div className="p-6 text-center text-gray-500 py-32">
-        <User size={48} className="mx-auto mb-4 opacity-20" />
-        <p>Employee not found</p>
-        <button className="btn-secondary mt-4" onClick={() => navigate('/admin/employees')}>
-          <ArrowLeft size={16} /> Back to Employees
+      <div className="text-center py-16">
+        <p className="text-slate-500 text-sm font-semibold">Employee not found.</p>
+        <button onClick={() => navigate('/admin/employees')} className="btn-secondary mt-4 text-xs font-bold">
+          Back to Employees
         </button>
       </div>
     );
   }
 
-  const statusClass = { active: 'badge-success', inactive: 'badge-danger', on_leave: 'badge-warning' };
-
-  const gross = salary
-    ? (+salary.basicSalary || 0) + (+salary.hra || 0) + (+salary.allowances || 0) + (+salary.bonus || 0)
-    : 0;
-  const net = salary
-    ? gross - (+salary.deductions || 0) - (+salary.taxDeductions || 0)
-    : 0;
+  const gross = (+salaryForm.basicSalary || 0) + (+salaryForm.hra || 0) + (+salaryForm.allowances || 0);
+  const totalDed = (+salaryForm.deductions || 0) + (+salaryForm.taxDeductions || 0);
+  const net = gross + (+salaryForm.bonus || 0) - totalDed;
 
   return (
-    <div className="p-6 space-y-6 animate-fade-in">
-      {/* Back */}
-      <button className="btn-ghost text-sm" onClick={() => navigate('/admin/employees')}>
-        <ArrowLeft size={16} /> Back to Employees
+    <div className="space-y-6 max-w-7xl mx-auto animate-fade-in font-sans">
+      {/* Back button */}
+      <button onClick={() => navigate('/admin/employees')} className="btn-secondary text-xs font-bold py-2 px-3 flex items-center gap-1.5 w-fit">
+        <ArrowLeft size={14} /> Back to Employees
       </button>
 
       {/* Profile Header */}
-      <div className="glass p-6 flex flex-col sm:flex-row items-center sm:items-start gap-6">
-        <div className="avatar avatar-xl avatar-gradient flex-shrink-0">
+      <div className="bg-white border border-slate-200/90 rounded-[24px] p-6 shadow-soft flex flex-col sm:flex-row items-center sm:items-start gap-6">
+        <div className="w-16 h-16 rounded-full bg-[#0B2D5C] text-white font-extrabold text-xl flex items-center justify-center shrink-0 shadow-md">
           {getInitials(employee.firstName, employee.lastName)}
         </div>
         <div className="flex-1 text-center sm:text-left">
-          <h1 className="text-2xl font-display font-bold text-white mb-1">
+          <h1 className="text-2xl font-extrabold text-[#0B2D5C] tracking-tight mb-1">
             {employee.firstName} {employee.lastName}
           </h1>
-          <p className="text-gray-400 text-sm mb-1">{employee.designation?.title || employee.designationId?.title || 'No Designation'}</p>
-          <p className="text-gray-500 text-xs mb-3">{employee.department?.name || employee.departmentId?.name || 'No Department'}</p>
+          <p className="text-slate-500 text-xs font-semibold mb-1">{employee.designation?.title || employee.designationId?.title || 'No Designation'}</p>
+          <p className="text-slate-400 text-xs font-medium mb-3">{employee.department?.name || employee.departmentId?.name || 'No Department'}</p>
           <div className="flex items-center justify-center sm:justify-start gap-3">
-            <span className={statusClass[employee.status] || 'badge-gray'}>{employee.status}</span>
+            <span className="badge-success">{employee.status || 'Active'}</span>
             {employee.employeeId && (
-              <span className="font-mono text-xs text-gray-500 bg-dark-700/60 px-2 py-1 rounded-lg">
+              <span className="font-mono text-xs font-bold text-slate-600 bg-slate-100 px-2 py-1 rounded-lg">
                 {employee.employeeId}
               </span>
             )}
-            <span className="badge-info">{employee.employmentType}</span>
+            <span className="badge-info capitalize">{employee.employmentType || 'Full-time'}</span>
           </div>
         </div>
         <div className="flex gap-2 flex-shrink-0">
-          <a href={`mailto:${employee.email}`} className="btn-secondary btn-sm">
-            <Mail size={14} /> Email
+          <a href={`mailto:${employee.email}`} className="btn-secondary text-xs font-bold py-2 px-3">
+            <Mail size={14} className="mr-1" /> Email
           </a>
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 bg-dark-900/60 p-1 rounded-xl w-fit">
+      <div className="flex gap-1.5 bg-slate-100 p-1.5 rounded-[16px] w-fit border border-slate-200/80">
         {TABS.map(tab => {
           const Icon = tab.icon;
           return (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+              className={`flex items-center gap-2 px-4 py-2 rounded-[12px] text-xs font-bold transition-all cursor-pointer ${
                 activeTab === tab.id
-                  ? 'bg-primary-600 text-white shadow-glow-primary'
-                  : 'text-gray-400 hover:text-white hover:bg-white/5'
+                  ? 'bg-[#0B2D5C] text-white shadow-soft'
+                  : 'text-slate-600 hover:text-[#0B2D5C] hover:bg-white'
               }`}
             >
               <Icon size={15} /> {tab.label}
@@ -218,24 +209,24 @@ export default function EmployeeDetail() {
       </div>
 
       {/* Tab Content */}
-      <div className="glass p-6 animate-fade-in">
+      <div className="bg-white border border-slate-200/90 rounded-[24px] p-6 shadow-soft animate-fade-in">
 
         {/* Personal Tab */}
         {activeTab === 'personal' && (
           <div>
-            <div className="flex items-center justify-between mb-5">
-              <h2 className="text-base font-semibold text-white">Personal Information</h2>
+            <div className="flex items-center justify-between mb-5 border-b border-slate-100 pb-3">
+              <h2 className="text-base font-extrabold text-[#0B2D5C]">Personal Information</h2>
               {!editingPersonal ? (
-                <button className="btn-secondary btn-sm" onClick={() => setEditingPersonal(true)}>
-                  <Edit2 size={14} /> Edit
+                <button className="btn-secondary text-xs font-bold py-1.5 px-3" onClick={() => setEditingPersonal(true)}>
+                  <Edit2 size={14} className="mr-1" /> Edit
                 </button>
               ) : (
                 <div className="flex gap-2">
-                  <button className="btn-ghost btn-sm" onClick={() => setEditingPersonal(false)}>
-                    <X size={14} /> Cancel
+                  <button className="btn-secondary text-xs" onClick={() => setEditingPersonal(false)}>
+                    <X size={14} className="mr-1" /> Cancel
                   </button>
-                  <button className="btn-primary btn-sm" onClick={handlePersonalSave} disabled={personalLoading}>
-                    {personalLoading ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+                  <button className="btn-primary text-xs font-bold" onClick={handlePersonalSave} disabled={personalLoading}>
+                    {personalLoading ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} className="mr-1" />}
                     Save
                   </button>
                 </div>
@@ -267,7 +258,7 @@ export default function EmployeeDetail() {
                     <label className="form-label">{field.label}</label>
                     {field.type === 'select' ? (
                       <select
-                        className="form-select"
+                        className="input text-xs font-semibold cursor-pointer"
                         value={personalForm[field.name]}
                         onChange={e => setPersonalForm(p => ({ ...p, [field.name]: e.target.value }))}
                       >
@@ -277,7 +268,7 @@ export default function EmployeeDetail() {
                     ) : (
                       <input
                         type={field.type}
-                        className="form-input"
+                        className="input text-xs"
                         value={personalForm[field.name]}
                         onChange={e => setPersonalForm(p => ({ ...p, [field.name]: e.target.value }))}
                       />
@@ -287,7 +278,7 @@ export default function EmployeeDetail() {
                 <div className="md:col-span-2">
                   <label className="form-label">Address</label>
                   <textarea
-                    className="form-input resize-none"
+                    className="input text-xs resize-none"
                     rows={2}
                     value={personalForm.address}
                     onChange={e => setPersonalForm(p => ({ ...p, address: e.target.value }))}
@@ -301,7 +292,7 @@ export default function EmployeeDetail() {
         {/* Job Tab */}
         {activeTab === 'job' && (
           <div>
-            <h2 className="text-base font-semibold text-white mb-5">Job Information</h2>
+            <h2 className="text-base font-extrabold text-[#0B2D5C] mb-5 border-b border-slate-100 pb-3">Job Information</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8">
               <InfoRow icon={Building2} label="Department" value={employee.department?.name || employee.departmentId?.name} />
               <InfoRow icon={Award} label="Designation" value={employee.designation?.title || employee.designationId?.title} />
@@ -316,19 +307,19 @@ export default function EmployeeDetail() {
         {/* Salary Tab */}
         {activeTab === 'salary' && (
           <div>
-            <div className="flex items-center justify-between mb-5">
-              <h2 className="text-base font-semibold text-white">Salary Structure</h2>
+            <div className="flex items-center justify-between mb-5 border-b border-slate-100 pb-3">
+              <h2 className="text-base font-extrabold text-[#0B2D5C]">Salary Structure</h2>
               {!editingSalary ? (
-                <button className="btn-secondary btn-sm" onClick={() => setEditingSalary(true)}>
-                  <Edit2 size={14} /> {salary ? 'Edit Salary' : 'Set Salary'}
+                <button className="btn-secondary text-xs font-bold py-1.5 px-3" onClick={() => setEditingSalary(true)}>
+                  <Edit2 size={14} className="mr-1" /> {salary ? 'Edit Salary' : 'Set Salary'}
                 </button>
               ) : (
                 <div className="flex gap-2">
-                  <button className="btn-ghost btn-sm" onClick={() => setEditingSalary(false)}>
-                    <X size={14} /> Cancel
+                  <button className="btn-secondary text-xs" onClick={() => setEditingSalary(false)}>
+                    <X size={14} className="mr-1" /> Cancel
                   </button>
-                  <button className="btn-primary btn-sm" onClick={handleSalarySave} disabled={salaryLoading}>
-                    {salaryLoading ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+                  <button className="btn-primary text-xs font-bold" onClick={handleSalarySave} disabled={salaryLoading}>
+                    {salaryLoading ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} className="mr-1" />}
                     Save
                   </button>
                 </div>
@@ -341,35 +332,32 @@ export default function EmployeeDetail() {
                   {/* Summary cards */}
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
                     {[
-                      { label: 'Gross Salary', value: gross, color: 'text-primary-400' },
-                      { label: 'Net Salary', value: net, color: 'text-success-500' },
-                      { label: 'Deductions', value: (+salary.deductions || 0) + (+salary.taxDeductions || 0), color: 'text-danger-500' },
-                      { label: 'Bonus', value: +salary.bonus || 0, color: 'text-warning-500' },
+                      { label: 'Gross Salary', value: gross, color: 'text-[#145DA0]' },
+                      { label: 'Net Salary', value: net, color: 'text-[#22A06B]' },
+                      { label: 'Deductions', value: (+salary.deductions || 0) + (+salary.taxDeductions || 0), color: 'text-[#E5484D]' },
+                      { label: 'Bonus', value: +salary.bonus || 0, color: 'text-[#F59A23]' },
                     ].map(card => (
-                      <div key={card.label} className="glass-sm p-3">
-                        <p className="text-xs text-gray-500 mb-1">{card.label}</p>
-                        <p className={`text-lg font-bold ${card.color}`}>
-                          ₹{card.value.toLocaleString('en-IN')}
+                      <div key={card.label} className="bg-slate-50 border border-slate-200/80 rounded-[14px] p-3">
+                        <p className="text-[10px] font-bold text-slate-400 uppercase">{card.label}</p>
+                        <p className={`text-base font-extrabold font-mono mt-1 ${card.color}`}>
+                          ₹{Number(card.value).toLocaleString('en-IN')}
                         </p>
                       </div>
                     ))}
                   </div>
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8">
-                    <InfoRow icon={DollarSign} label="Basic Salary" value={`₹${(+salary.basicSalary || 0).toLocaleString('en-IN')}`} />
-                    <InfoRow icon={DollarSign} label="HRA" value={`₹${(+salary.hra || 0).toLocaleString('en-IN')}`} />
-                    <InfoRow icon={DollarSign} label="Allowances" value={`₹${(+salary.allowances || 0).toLocaleString('en-IN')}`} />
-                    <InfoRow icon={DollarSign} label="Bonus" value={`₹${(+salary.bonus || 0).toLocaleString('en-IN')}`} />
-                    <InfoRow icon={DollarSign} label="Deductions" value={`₹${(+salary.deductions || 0).toLocaleString('en-IN')}`} />
-                    <InfoRow icon={DollarSign} label="Tax Deductions" value={`₹${(+salary.taxDeductions || 0).toLocaleString('en-IN')}`} />
+                    <InfoRow label="Basic Salary" value={`₹${Number(salary.basicSalary || 0).toLocaleString('en-IN')}`} />
+                    <InfoRow label="HRA" value={`₹${Number(salary.hra || 0).toLocaleString('en-IN')}`} />
+                    <InfoRow label="Allowances" value={`₹${Number(salary.allowances || 0).toLocaleString('en-IN')}`} />
+                    <InfoRow label="Bonus" value={`₹${Number(salary.bonus || 0).toLocaleString('en-IN')}`} />
+                    <InfoRow label="Deductions" value={`₹${Number(salary.deductions || 0).toLocaleString('en-IN')}`} />
+                    <InfoRow label="Tax Deductions" value={`₹${Number(salary.taxDeductions || 0).toLocaleString('en-IN')}`} />
                   </div>
                 </div>
               ) : (
-                <div className="text-center py-12 text-gray-500">
-                  <DollarSign size={40} className="mx-auto mb-3 opacity-20" />
-                  <p>No salary structure defined</p>
-                  <button className="btn-primary mt-4 btn-sm" onClick={() => setEditingSalary(true)}>
-                    <Plus size={14} /> Set Salary
-                  </button>
+                <div className="text-center py-8 text-slate-400 text-xs font-semibold">
+                  No salary structure configured for this employee yet.
                 </div>
               )
             ) : (
@@ -386,43 +374,13 @@ export default function EmployeeDetail() {
                     <label className="form-label">{field.label}</label>
                     <input
                       type="number"
-                      min="0"
-                      className="form-input"
+                      className="input text-xs font-mono"
                       value={salaryForm[field.name]}
-                      onChange={e => setSalaryForm(p => ({ ...p, [field.name]: e.target.value }))}
+                      onChange={e => setSalaryForm(s => ({ ...s, [field.name]: e.target.value }))}
+                      placeholder="0"
                     />
                   </div>
                 ))}
-                {/* Live preview */}
-                <div className="md:col-span-2 glass-sm p-4 rounded-xl mt-2">
-                  <p className="text-xs text-gray-500 mb-2">Preview</p>
-                  <div className="flex gap-6">
-                    <div>
-                      <p className="text-xs text-gray-500">Gross</p>
-                      <p className="text-primary-400 font-bold">
-                        ₹{(
-                          (+salaryForm.basicSalary || 0) +
-                          (+salaryForm.hra || 0) +
-                          (+salaryForm.allowances || 0) +
-                          (+salaryForm.bonus || 0)
-                        ).toLocaleString('en-IN')}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-500">Net</p>
-                      <p className="text-success-500 font-bold">
-                        ₹{(
-                          (+salaryForm.basicSalary || 0) +
-                          (+salaryForm.hra || 0) +
-                          (+salaryForm.allowances || 0) +
-                          (+salaryForm.bonus || 0) -
-                          (+salaryForm.deductions || 0) -
-                          (+salaryForm.taxDeductions || 0)
-                        ).toLocaleString('en-IN')}
-                      </p>
-                    </div>
-                  </div>
-                </div>
               </div>
             )}
           </div>
@@ -431,14 +389,9 @@ export default function EmployeeDetail() {
         {/* Documents Tab */}
         {activeTab === 'documents' && (
           <div>
-            <h2 className="text-base font-semibold text-white mb-5">Documents</h2>
-            <div className="border-2 border-dashed border-white/10 rounded-2xl p-12 text-center">
-              <FileText size={40} className="mx-auto mb-3 text-gray-600" />
-              <p className="text-gray-400 font-medium mb-1">No documents uploaded</p>
-              <p className="text-gray-600 text-sm mb-4">Upload ID proof, contracts, certificates, etc.</p>
-              <button className="btn-secondary btn-sm">
-                <Plus size={14} /> Upload Document
-              </button>
+            <h2 className="text-base font-extrabold text-[#0B2D5C] mb-5 border-b border-slate-100 pb-3">Documents</h2>
+            <div className="text-center py-10 text-slate-400 text-xs font-semibold">
+              No employee documents uploaded yet.
             </div>
           </div>
         )}

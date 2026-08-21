@@ -1,49 +1,41 @@
+import React from 'react';
 import { Inbox } from 'lucide-react';
 
 /**
- * EmptyState — Centre-aligned empty-state illustration component.
- *
- * Props:
- *   icon        {LucideIcon}  — icon component to render (default: Inbox)
- *   title       {string}      — main heading
- *   description {string}      — supporting text
- *   action      {string}      — CTA button label (omit to hide button)
- *   onAction    {function}    — CTA callback
- *   className   {string}      — extra wrapper classes
+ * EmptyState Component (Section 30 requirement)
+ * Displays a clean, minimal illustration/icon with Marathi + English text and CTA button.
  */
-function EmptyState({
+export default function EmptyState({
   icon: Icon = Inbox,
-  title = 'Nothing here yet',
-  description = 'There is no data to display at the moment.',
+  title = 'सध्या कोणतीही माहिती नाही',
+  description = 'येथे प्रदर्शित करण्यासाठी कोणताही डेटा आढळला नाही.',
   action,
   onAction,
   className = '',
 }) {
   return (
-    <div
-      className={`flex flex-col items-center justify-center py-16 px-6 text-center select-none ${className}`}
-    >
-      {/* Glowing icon ring */}
-      <div className="relative mb-6">
-        {/* Outer glow ring */}
-        <div className="absolute inset-0 rounded-full bg-primary-600/10 blur-xl scale-150 pointer-events-none" />
-        <div className="relative w-20 h-20 rounded-2xl bg-dark-800 border border-white/[0.06] flex items-center justify-center shadow-card">
-          <Icon size={36} className="text-primary-400 opacity-80" strokeWidth={1.5} />
+    <div className={`flex flex-col items-center justify-center py-12 px-6 text-center select-none ${className}`}>
+      {/* Icon container with soft blue tint */}
+      <div className="relative mb-4">
+        <div className="w-16 h-16 rounded-[20px] bg-[#E6F0FA] border border-[#B7D5F2] flex items-center justify-center shadow-soft">
+          <Icon size={28} className="text-[#145DA0]" strokeWidth={1.75} />
         </div>
       </div>
 
-      {/* Text */}
-      <h3 className="text-base font-semibold text-gray-200 mb-1.5">{title}</h3>
-      <p className="text-sm text-gray-500 max-w-xs leading-relaxed">{description}</p>
+      {/* Title & Description */}
+      <h3 className="text-base font-bold text-[#172033] mb-1 font-marathi">
+        {title}
+      </h3>
+      <p className="text-xs font-medium text-slate-500 max-w-sm leading-relaxed">
+        {description}
+      </p>
 
-      {/* CTA */}
+      {/* CTA Button */}
       {action && onAction && (
-        <button onClick={onAction} className="btn-primary mt-6">
+        <button onClick={onAction} className="btn-primary btn-sm mt-5">
           {action}
         </button>
       )}
     </div>
   );
 }
-
-export default EmptyState;

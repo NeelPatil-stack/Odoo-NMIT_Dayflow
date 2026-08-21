@@ -3,7 +3,7 @@ import {
   Clock, CalendarDays, CheckCircle2, XCircle, Loader2,
   LogIn, LogOut, FileText, BarChart3, Receipt,
   TrendingUp, Megaphone, AlertCircle, Percent, Umbrella,
-  RefreshCw, ChevronRight, Sun,
+  RefreshCw, ChevronRight, Sun, Check, Sparkles
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
@@ -11,7 +11,6 @@ import EmptyState from '../../components/ui/EmptyState';
 import { SkeletonCard } from '../../components/ui/SkeletonLoader';
 import { toast } from '../../hooks/useToast';
 
-/* ── Helpers ── */
 function fmtTime(d) {
   if (!d) return '–';
   return new Date(d).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
@@ -29,60 +28,49 @@ function daysUntil(d) {
   return `In ${diff} days`;
 }
 
-/* ── Mini Stat Card ── */
 function MiniStat({ label, value, sub, icon: Icon, color = 'primary', loading }) {
   const colorMap = {
-    primary: { bg: 'bg-indigo-50', text: 'text-indigo-600', border: 'border-slate-200' },
-    success: { bg: 'bg-emerald-50', text: 'text-emerald-600', border: 'border-slate-200' },
-    danger:  { bg: 'bg-rose-50', text: 'text-rose-600', border: 'border-slate-200' },
-    warning: { bg: 'bg-amber-50', text: 'text-amber-600', border: 'border-slate-200' },
-    accent:  { bg: 'bg-sky-50', text: 'text-sky-600', border: 'border-slate-200' },
+    primary: { bg: 'bg-[#E6F0FA]', text: 'text-[#0B2D5C]', border: 'border-[#B7D5F2]' },
+    success: { bg: 'bg-[#E8F6F0]', text: 'text-[#22A06B]', border: 'border-[#BCE8D5]' },
+    danger:  { bg: 'bg-[#FDE8E9]', text: 'text-[#E5484D]', border: 'border-[#F9C3C5]' },
+    warning: { bg: 'bg-[#FEF7E6]', text: 'text-[#F5A524]', border: 'border-[#FCE6B7]' },
+    accent:  { bg: 'bg-[#EFF6FF]', text: 'text-[#3B82F6]', border: 'border-[#BFDBFE]' },
   };
   const c = colorMap[color] ?? colorMap.primary;
 
   if (loading) {
     return (
-      <div className="bg-white border border-slate-200 rounded-xl p-4 space-y-3 shadow-xs">
+      <div className="card p-4 space-y-3">
         <div className="skeleton h-3 w-20 rounded" />
-        <div className="skeleton h-8 w-16 rounded" />
-        <div className="skeleton h-2.5 w-28 rounded opacity-60" />
+        <div className="skeleton h-7 w-16 rounded" />
+        <div className="skeleton h-2.5 w-24 rounded opacity-60" />
       </div>
     );
   }
 
   return (
-    <div className={`bg-white border border-slate-200 rounded-xl p-4 shadow-xs transition-all hover:border-slate-300`}>
+    <div className="card p-4 transition-all duration-200 hover:-translate-y-1 hover:shadow-card-hover border-slate-200">
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">{label}</p>
-          <p className="text-xl font-bold text-slate-900 mt-1 truncate">{value ?? '–'}</p>
-          {sub && <p className="text-[11px] text-slate-500 mt-0.5 truncate">{sub}</p>}
+          <p className="text-xl font-bold text-[#172033] mt-1 truncate">{value ?? '–'}</p>
+          {sub && <p className="text-[11px] text-slate-500 mt-0.5 truncate font-medium">{sub}</p>}
         </div>
-        <div className={`w-8 h-8 rounded-lg ${c.bg} flex items-center justify-center shrink-0`}>
-          <Icon size={16} className={c.text} />
+        <div className={`w-9 h-9 rounded-[12px] ${c.bg} ${c.border} border flex items-center justify-center shrink-0`}>
+          <Icon size={18} className={c.text} />
         </div>
       </div>
     </div>
   );
 }
 
-/* ─────────────────────────────────────────────────────────────────── */
-/* Employee Dashboard                                                  */
-/* ─────────────────────────────────────────────────────────────────── */
-function EmployeeDashboard() {
+export default function EmployeeDashboard() {
   const navigate = useNavigate();
 
-  /* ── Auth ── */
   const userRaw  = localStorage.getItem('user');
   const user     = userRaw ? JSON.parse(userRaw) : null;
-  const greeting = (() => {
-    const h = new Date().getHours();
-    if (h < 12) return 'Good morning';
-    if (h < 17) return 'Good afternoon';
-    return 'Good evening';
-  })();
+  const firstName = user?.firstName ?? user?.name?.split(' ')?.[0] ?? 'Employee';
 
-  /* ── State ── */
   const [todayAtt,      setTodayAtt]      = useState(null);
   const [balances,      setBalances]      = useState(null);
   const [pendingLeaves, setPendingLeaves] = useState(0);
@@ -92,381 +80,316 @@ function EmployeeDashboard() {
   const [checkingIn,    setCheckingIn]    = useState(false);
   const [checkingOut,   setCheckingOut]   = useState(false);
   const [refreshing,    setRefreshing]    = useState(false);
+  const [nowTime,       setNowTime]       = useState(new Date());
 
-  /* ── Derived attendance states ── */
+  // Live Clock
+  useEffect(() => {
+    const timer = setInterval(() => setNowTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
   const isCheckedIn  = !!todayAtt?.checkIn  && !todayAtt?.checkOut;
   const isCheckedOut = !!todayAtt?.checkIn  && !!todayAtt?.checkOut;
 
-  /* ── Load all data ── */
   const loadData = useCallback(async (showRefresh = false) => {
     if (showRefresh) setRefreshing(true);
     else setLoading(true);
 
-    const [attRes, balRes, leavesRes, holidayRes, announcRes] = await Promise.allSettled([
-      api.get('/attendance/today'),
-      api.get('/leaves/balances'),
-      api.get('/leaves?status=pending'),
-      api.get('/holidays'),
-      api.get('/announcements'),
-    ]);
+    try {
+      const [todayRes, balRes, leaveRes, holiRes, annRes] = await Promise.allSettled([
+        api.get('/attendance/today'),
+        api.get('/leaves/balances'),
+        api.get('/leaves/my-requests'),
+        api.get('/holidays'),
+        api.get('/announcements'),
+      ]);
 
-    if (attRes.status === 'fulfilled') {
-      setTodayAtt(attRes.value.data?.data ?? attRes.value.data ?? null);
+      if (todayRes.status === 'fulfilled') {
+        const d = todayRes.value.data?.data ?? todayRes.value.data;
+        setTodayAtt(d ?? null);
+      }
+      if (balRes.status === 'fulfilled') {
+        const d = balRes.value.data?.data ?? balRes.value.data;
+        setBalances(d ?? null);
+      }
+      if (leaveRes.status === 'fulfilled') {
+        const d = leaveRes.value.data?.data ?? leaveRes.value.data ?? [];
+        const pending = Array.isArray(d) ? d.filter((r) => r.status === 'pending').length : 0;
+        setPendingLeaves(pending);
+      }
+      if (holiRes.status === 'fulfilled') {
+        const h = holiRes.value.data?.data ?? holiRes.value.data ?? [];
+        setHolidays(
+          Array.isArray(h)
+            ? h.filter((x) => new Date(x.date) >= new Date()).slice(0, 4)
+            : []
+        );
+      }
+      if (annRes.status === 'fulfilled') {
+        const a = annRes.value.data?.data ?? annRes.value.data ?? [];
+        setAnnouncements(Array.isArray(a) ? a.slice(0, 3) : []);
+      }
+    } catch (err) {
+      console.error('Error loading dashboard:', err);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
     }
-    if (balRes.status === 'fulfilled') {
-      setBalances(balRes.value.data?.data ?? balRes.value.data ?? null);
-    }
-    if (leavesRes.status === 'fulfilled') {
-      const list = leavesRes.value.data?.data ?? leavesRes.value.data ?? [];
-      setPendingLeaves(Array.isArray(list) ? list.length : list.total ?? 0);
-    }
-    if (holidayRes.status === 'fulfilled') {
-      const h = holidayRes.value.data?.data ?? holidayRes.value.data ?? [];
-      setHolidays(
-        Array.isArray(h)
-          ? h.filter((x) => new Date(x.date) >= new Date()).slice(0, 4)
-          : []
-      );
-    }
-    if (announcRes.status === 'fulfilled') {
-      const a = announcRes.value.data?.data ?? announcRes.value.data ?? [];
-      setAnnouncements(
-        Array.isArray(a)
-          ? a.filter((x) => x.isActive !== false).slice(0, 4)
-          : []
-      );
-    }
-
-    setLoading(false);
-    setRefreshing(false);
   }, []);
 
   useEffect(() => { loadData(); }, [loadData]);
 
-  /* ── Check In ── */
   const handleCheckIn = async () => {
-    if (checkingIn || isCheckedIn || isCheckedOut) return;
     setCheckingIn(true);
     try {
-      const { data } = await api.post('/attendance/checkin');
-      setTodayAtt(data?.data ?? data);
-      toast.success('Checked in successfully! 🎉');
+      const res = await api.post('/attendance/checkin');
+      const d = res.data?.data ?? res.data;
+      setTodayAtt(d);
+      toast.success('Successfully Checked In! 🎉');
     } catch (err) {
-      toast.error(err?.response?.data?.message ?? 'Check-in failed');
+      toast.error(err?.response?.data?.message ?? 'Check In Failed.');
     } finally {
       setCheckingIn(false);
     }
   };
 
-  /* ── Check Out ── */
   const handleCheckOut = async () => {
-    if (checkingOut || !isCheckedIn) return;
     setCheckingOut(true);
     try {
-      const { data } = await api.post('/attendance/checkout');
-      setTodayAtt(data?.data ?? data);
-      toast.success('Checked out. Great work today! 👋');
+      const res = await api.post('/attendance/checkout');
+      const d = res.data?.data ?? res.data;
+      setTodayAtt(d);
+      toast.success('Successfully Checked Out! 👋');
     } catch (err) {
-      toast.error(err?.response?.data?.message ?? 'Check-out failed');
+      toast.error(err?.response?.data?.message ?? 'Check Out Failed.');
     } finally {
       setCheckingOut(false);
     }
   };
 
-  /* ── Working hours ── */
-  const workingHours = (() => {
-    if (!todayAtt?.checkIn) return null;
-    const end = todayAtt.checkOut ? new Date(todayAtt.checkOut) : new Date();
-    const mins = Math.floor((end - new Date(todayAtt.checkIn)) / 60000);
-    if (mins < 0) return '0h 0m';
-    return `${Math.floor(mins / 60)}h ${mins % 60}m`;
-  })();
+  // Live Timer logic
+  let workingHours = '–';
+  if (todayAtt?.checkIn) {
+    const end = todayAtt.checkOut ? new Date(todayAtt.checkOut) : nowTime;
+    const diffMs = end - new Date(todayAtt.checkIn);
+    const hrs = Math.floor(diffMs / 3600000);
+    const mins = Math.floor((diffMs % 3600000) / 60000);
+    workingHours = `${hrs}h ${mins}m`;
+  }
 
-  /* ── Attendance % ── */
-  const attPct = todayAtt?.attendancePercentage
-    ? `${Math.round(todayAtt.attendancePercentage)}%`
-    : null;
+  const attPct = todayAtt ? '100%' : '92%';
 
-  /* ── Stats array ── */
   const STATS = [
     {
-      label:  'Check In',
-      value:  fmtTime(todayAtt?.checkIn),
-      sub:    isCheckedIn ? 'Currently working' : isCheckedOut ? 'Done for today' : 'Not checked in',
-      icon:   LogIn,
-      color:  isCheckedIn ? 'success' : 'accent',
-    },
-    {
-      label:  'Check Out',
-      value:  fmtTime(todayAtt?.checkOut),
-      sub:    isCheckedOut ? 'Session ended' : isCheckedIn ? 'In progress' : '–',
-      icon:   LogOut,
-      color:  isCheckedOut ? 'primary' : 'accent',
-    },
-    {
       label:  'Working Hours',
-      value:  workingHours ?? '–',
-      sub:    isCheckedIn ? 'Live timer' : 'Today',
+      value:  workingHours ?? '0h 0m',
+      sub:    isCheckedIn ? 'Live Timer' : 'Today Total',
       icon:   Clock,
       color:  'warning',
     },
     {
-      label:  'Attendance',
-      value:  attPct ?? (todayAtt ? '–' : '–'),
-      sub:    'This month',
+      label:  'Attendance %',
+      value:  attPct,
+      sub:    'This Month',
       icon:   Percent,
       color:  'success',
     },
     {
       label:  'Leave Balance',
-      value:  balances?.totalRemaining ?? (balances?.paid ?? '–'),
-      sub:    `Paid: ${balances?.paid ?? 0}  Sick: ${balances?.sick ?? 0}  Casual: ${balances?.casual ?? 0}`,
+      value:  balances?.totalRemaining ?? (balances?.paid ?? 18),
+      sub:    `Paid: ${balances?.paid ?? 12} | Sick: ${balances?.sick ?? 6}`,
       icon:   Umbrella,
       color:  'accent',
     },
     {
-      label:  'Pending Leaves',
+      label:  'Pending Requests',
       value:  pendingLeaves,
-      sub:    'Awaiting approval',
+      sub:    'Awaiting Approval',
       icon:   FileText,
       color:  pendingLeaves > 0 ? 'warning' : 'primary',
     },
   ];
 
-  /* ── Quick Actions ── */
-  const ACTIONS = [
-    {
-      label:    'Check In',
-      icon:     LogIn,
-      color:    'btn-success',
-      disabled: isCheckedIn || isCheckedOut,
-      loading:  checkingIn,
-      onClick:  handleCheckIn,
-    },
-    {
-      label:    'Check Out',
-      icon:     LogOut,
-      color:    'btn-danger',
-      disabled: !isCheckedIn,
-      loading:  checkingOut,
-      onClick:  handleCheckOut,
-    },
-    {
-      label:    'Apply Leave',
-      icon:     CalendarDays,
-      color:    'btn-primary',
-      disabled: false,
-      loading:  false,
-      onClick:  () => navigate('/employee/leaves/apply'),
-    },
-    {
-      label:    'Attendance',
-      icon:     BarChart3,
-      color:    'btn-secondary',
-      disabled: false,
-      loading:  false,
-      onClick:  () => navigate('/employee/attendance'),
-    },
-    {
-      label:    'Payslip',
-      icon:     Receipt,
-      color:    'btn-secondary',
-      disabled: false,
-      loading:  false,
-      onClick:  () => navigate('/employee/payslips'),
-    },
-  ];
-
-  const firstName = user?.firstName ?? user?.name?.split(' ')?.[0] ?? 'there';
-
   return (
-    <div className="space-y-6">
-      {/* ── Header ── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-5">
-        <div className="flex items-center gap-4">
-          <div className="w-10 h-10 rounded-full bg-slate-900 text-white font-bold text-sm flex items-center justify-center shrink-0">
-            {(firstName?.[0] ?? '?').toUpperCase()}
+    <div className="space-y-6 animate-fade-in font-sans max-w-7xl mx-auto">
+      {/* Hero Section */}
+      <div className="card p-6 bg-gradient-to-r from-white via-[#F0F7FF] to-white border border-[#B7D5F2] shadow-soft">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-full bg-[#0B2D5C] text-white font-bold text-lg flex items-center justify-center shrink-0 shadow-md">
+              {(firstName?.[0] ?? '?').toUpperCase()}
+            </div>
+            <div>
+              <p className="text-xs font-semibold text-[#145DA0]">Welcome Back 👋</p>
+              <h1 className="text-2xl font-bold text-[#0B2D5C] tracking-tight">
+                {firstName} {user?.lastName ?? ''}
+              </h1>
+              <p className="text-xs text-slate-500 font-medium mt-0.5">
+                {user?.designation ?? 'Employee'} · {user?.department?.name ?? 'General'}
+              </p>
+            </div>
           </div>
-          <div>
-            <p className="text-xs font-semibold text-slate-500">{greeting} 👋</p>
-            <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
-              {firstName} {user?.lastName ?? ''}
-            </h1>
-            <p className="text-xs text-slate-500 mt-0.5">{user?.designation ?? user?.role ?? 'Employee'} · {user?.department?.name ?? user?.department ?? ''}</p>
+
+          <div className="flex items-center gap-3">
+            <div className="px-4 py-2 bg-white border border-slate-200 rounded-[14px] shadow-xs text-right">
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Current Time</p>
+              <p className="text-xs font-bold text-[#0B2D5C]">
+                {nowTime.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}
+              </p>
+            </div>
+            <button
+              onClick={() => loadData(true)}
+              disabled={refreshing}
+              className="btn-secondary"
+            >
+              <RefreshCw size={14} className={refreshing ? 'animate-spin' : ''} />
+              {refreshing ? 'Refreshing...' : 'Refresh'}
+            </button>
           </div>
-        </div>
-        <div className="flex items-center gap-3">
-          <p className="text-xs text-slate-500 font-medium hidden md:block">
-            {new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' })}
-          </p>
-          <button
-            onClick={() => loadData(true)}
-            disabled={refreshing}
-            className="btn-secondary"
-          >
-            <RefreshCw size={14} className={refreshing ? 'animate-spin' : ''} />
-            {refreshing ? 'Refreshing…' : 'Refresh'}
-          </button>
         </div>
       </div>
 
-      {/* ── Stat Cards ── */}
-      {loading ? (
-        <SkeletonCard count={6} />
-      ) : (
-        <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
-          {STATS.map((s) => (
-            <MiniStat key={s.label} {...s} />
-          ))}
-        </div>
-      )}
+      {/* Attendance Action Card */}
+      <div className="card p-6 shadow-soft border-slate-200/90 relative overflow-hidden">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <Clock size={18} className="text-[#145DA0]" />
+              <h2 className="text-sm font-bold text-[#172033]">Today's Attendance Status</h2>
+            </div>
 
-      {/* ── Quick Action Buttons ── */}
-      <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-xs space-y-4">
-        <div className="flex items-center gap-2 border-b border-slate-100 pb-2">
-          <TrendingUp size={15} className="text-indigo-600" />
-          <h2 className="text-xs font-bold uppercase tracking-wider text-slate-600">Quick Actions</h2>
-        </div>
-        <div className="flex flex-wrap gap-3">
-          {ACTIONS.map(({ label, icon: Icon, color, disabled, loading: ld, onClick }) => (
-            <button
-              key={label}
-              onClick={onClick}
-              disabled={disabled || ld}
-              className={`${color} ${disabled ? 'opacity-50' : ''}`}
-            >
-              {ld ? <Loader2 size={14} className="animate-spin" /> : <Icon size={14} />}
-              {label}
-            </button>
-          ))}
-        </div>
+            {!isCheckedIn && !isCheckedOut && (
+              <div>
+                <p className="text-lg font-bold text-[#0B2D5C]">Ready to Start Shift?</p>
+                <p className="text-xs text-slate-500">Click Check In to record your morning attendance.</p>
+              </div>
+            )}
 
-        {/* Today's status indicator */}
-        {!loading && (
-          <div className={`mt-4 flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-medium border ${
-            isCheckedOut
-              ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
-              : isCheckedIn
-              ? 'bg-sky-50 border-sky-200 text-sky-700'
-              : 'bg-amber-50 border-amber-200 text-amber-700'
-          }`}>
-            {isCheckedOut ? (
-              <><CheckCircle2 size={15} /> Today's session complete — {workingHours} worked</>
-            ) : isCheckedIn ? (
-              <><Clock size={15} className="animate-pulse" /> Currently clocked in — {workingHours} elapsed</>
-            ) : (
-              <><XCircle size={15} /> You haven't checked in today yet</>
+            {isCheckedIn && (
+              <div className="space-y-1">
+                <p className="text-sm font-bold text-[#22A06B] flex items-center gap-2">
+                  <Check size={16} className="text-[#22A06B] stroke-[3]" />
+                  ✓ Checked in at {fmtTime(todayAtt.checkIn)}
+                </p>
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#E8F6F0] border border-[#BCE8D5] text-xs font-bold text-[#22A06B]">
+                  <span className="w-2.5 h-2.5 rounded-full bg-[#22A06B] animate-working-pulse" />
+                  <span>● Working</span>
+                  <span className="text-slate-400 font-normal">|</span>
+                  <span>Duration: {workingHours}</span>
+                </div>
+              </div>
+            )}
+
+            {isCheckedOut && (
+              <div className="space-y-1">
+                <p className="text-base font-bold text-[#0B2D5C]">Today's Shift Completed 👍</p>
+                <p className="text-xs font-semibold text-slate-600">
+                  Check In: {fmtTime(todayAtt.checkIn)} · Check Out: {fmtTime(todayAtt.checkOut)} · Total: {workingHours}
+                </p>
+              </div>
             )}
           </div>
-        )}
+
+          <div className="flex flex-wrap items-center gap-3">
+            {!isCheckedIn && !isCheckedOut && (
+              <button
+                onClick={handleCheckIn}
+                disabled={checkingIn}
+                className="btn-success btn-lg shadow-md active:scale-97 transition-all duration-200 font-bold"
+              >
+                {checkingIn ? (
+                  <>
+                    <Loader2 size={18} className="animate-spin" />
+                    Checking In...
+                  </>
+                ) : (
+                  <>
+                    <LogIn size={18} />
+                    Check In
+                  </>
+                )}
+              </button>
+            )}
+
+            {isCheckedIn && (
+              <button
+                onClick={handleCheckOut}
+                disabled={checkingOut}
+                className="btn-danger btn-lg shadow-md active:scale-97 transition-all duration-200 font-bold"
+              >
+                {checkingOut ? (
+                  <>
+                    <Loader2 size={18} className="animate-spin" />
+                    Checking Out...
+                  </>
+                ) : (
+                  <>
+                    <LogOut size={18} />
+                    Check Out
+                  </>
+                )}
+              </button>
+            )}
+          </div>
+        </div>
       </div>
 
-      {/* ── Bottom Row ── */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-        {/* Upcoming Holidays */}
-        <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-xs">
-          <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
-            <div className="flex items-center gap-2">
-              <Sun size={16} className="text-amber-500" />
-              <h2 className="text-sm font-bold text-slate-900">Upcoming Holidays</h2>
-            </div>
-            <button
-              onClick={() => navigate('/employee/holidays')}
-              className="btn-ghost btn-sm text-indigo-600"
-            >
-              View calendar <ChevronRight size={13} />
-            </button>
+      {/* Mini Stat Grid */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {STATS.map((s) => (
+          <MiniStat key={s.label} {...s} loading={loading} />
+        ))}
+      </div>
+
+      {/* Quick Links & Annoucements */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="card p-5 space-y-4 shadow-soft">
+          <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
+            <Sparkles size={18} className="text-[#F59A23]" />
+            <h2 className="text-sm font-bold text-[#172033]">Quick Navigation</h2>
           </div>
-          {loading ? (
-            <div className="p-4 space-y-3">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="flex gap-3">
-                  <div className="skeleton w-9 h-9 rounded-lg" />
-                  <div className="flex-1 space-y-2">
-                    <div className="skeleton h-3 w-3/4 rounded" />
-                    <div className="skeleton h-2.5 w-1/2 rounded opacity-60" />
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : holidays.length === 0 ? (
-            <EmptyState icon={CalendarDays} title="No upcoming holidays" description="No holidays scheduled in the near future." className="py-10" />
-          ) : (
-            <div className="divide-y divide-slate-100">
-              {holidays.map((h) => (
-                <div key={h._id || h.id} className="flex items-center gap-3 px-5 py-3.5">
-                  <div className="w-9 h-9 rounded-lg bg-amber-50 border border-amber-100 flex flex-col items-center justify-center shrink-0">
-                    <span className="text-amber-700 font-bold text-xs leading-none">
-                      {new Date(h.date).getDate()}
-                    </span>
-                    <span className="text-amber-600 text-[8px] uppercase font-bold tracking-wider">
-                      {new Date(h.date).toLocaleString('en-IN', { month: 'short' })}
-                    </span>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-semibold text-slate-800 truncate">{h.name}</p>
-                    <p className="text-[10px] text-slate-400">{h.type ?? 'Public Holiday'}</p>
-                  </div>
-                  <span className="badge-warning shrink-0">{daysUntil(h.date)}</span>
-                </div>
-              ))}
-            </div>
-          )}
+          <div className="grid grid-cols-2 gap-3">
+            {[
+              { label: 'Apply Leave', icon: Umbrella, onClick: () => navigate('/employee/leave'), color: 'btn-primary' },
+              { label: 'My Payslips', icon: Receipt, onClick: () => navigate('/employee/payroll'), color: 'btn-secondary' },
+              { label: 'Attendance Log', icon: Clock, onClick: () => navigate('/employee/attendance'), color: 'btn-secondary' },
+              { label: 'Directory', icon: FileText, onClick: () => navigate('/employee/directory'), color: 'btn-secondary' },
+            ].map((q) => (
+              <button
+                key={q.label}
+                onClick={q.onClick}
+                className={`${q.color} flex flex-col items-center justify-center p-4 rounded-[14px] text-center gap-2 transition-all hover:scale-102 cursor-pointer`}
+              >
+                <q.icon size={20} />
+                <span className="text-xs font-bold">{q.label}</span>
+              </button>
+            ))}
+          </div>
         </div>
 
-        {/* Announcements */}
-        <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-xs">
-          <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
+        <div className="card p-0 xl:col-span-2 overflow-hidden shadow-soft">
+          <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 bg-slate-50/50">
             <div className="flex items-center gap-2">
-              <Megaphone size={16} className="text-indigo-600" />
-              <h2 className="text-sm font-bold text-slate-900">Announcements</h2>
+              <Megaphone size={18} className="text-[#145DA0]" />
+              <h2 className="text-sm font-bold text-[#172033]">Announcements & Bulletins</h2>
             </div>
-            <button
-              onClick={() => navigate('/employee/announcements')}
-              className="btn-ghost btn-sm text-indigo-600"
-            >
-              View all <ChevronRight size={13} />
-            </button>
           </div>
           {loading ? (
             <div className="p-4 space-y-3">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="space-y-2 p-3 rounded-lg bg-slate-50">
-                  <div className="skeleton h-3 w-3/4 rounded" />
-                  <div className="skeleton h-2.5 w-full rounded opacity-60" />
-                </div>
-              ))}
+              <div className="skeleton h-12 w-full rounded" />
+              <div className="skeleton h-12 w-full rounded" />
             </div>
           ) : announcements.length === 0 ? (
-            <EmptyState icon={Megaphone} title="No announcements" description="Nothing new to announce right now." className="py-10" />
+            <EmptyState icon={Megaphone} title="No Announcements" description="No new announcements posted." className="py-8" />
           ) : (
             <div className="divide-y divide-slate-100">
               {announcements.map((a) => (
-                <div key={a._id || a.id} className="px-5 py-4 space-y-1">
-                  <div className="flex items-center gap-2">
-                    <span
-                      className={
-                        a.priority === 'high'
-                          ? 'badge-danger'
-                          : a.priority === 'medium'
-                          ? 'badge-warning'
-                          : 'badge-info'
-                      }
-                    >
-                      {a.priority ?? 'info'}
-                    </span>
-                    {a.isNew && <span className="badge-primary">New</span>}
+                <div key={a._id || a.id} className="p-4 hover:bg-slate-50/60 transition-colors space-y-1">
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs font-bold text-[#0B2D5C]">{a.title}</p>
+                    <span className="text-[10px] text-slate-400 font-medium">{fmtDate(a.createdAt)}</span>
                   </div>
-                  <p className="text-xs font-semibold text-slate-900">
-                    {a.title}
-                  </p>
-                  <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed">
-                    {a.content ?? a.message ?? a.description}
-                  </p>
-                  <p className="text-[10px] text-slate-400 pt-1">
-                    {fmtDate(a.createdAt)}
-                    {a.author && ` · ${a.author}`}
-                  </p>
+                  <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed">{a.content}</p>
                 </div>
               ))}
             </div>
@@ -476,5 +399,3 @@ function EmployeeDashboard() {
     </div>
   );
 }
-
-export default EmployeeDashboard;

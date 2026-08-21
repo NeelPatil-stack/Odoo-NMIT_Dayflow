@@ -1,14 +1,14 @@
 import { useState, useEffect } from 'react';
-import { Megaphone, Plus, Trash2, AlertCircle, Bell } from 'lucide-react';
+import { Plus, Trash2, Megaphone, X, AlertCircle } from 'lucide-react';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
-import Modal from '../../components/ui/Modal';
+import EmptyState from '../../components/ui/EmptyState';
 
-export default function Announcements() {
+export default function AdminAnnouncements() {
   const [announcements, setAnnouncements] = useState([]);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
-  const [formData, setFormData] = useState({ title: '', message: '', priority: 'normal', expiry_date: '' });
+  const [formData, setFormData] = useState({ title: '', content: '', priority: 'general' });
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -19,9 +19,9 @@ export default function Announcements() {
     setLoading(true);
     try {
       const res = await api.get('/announcements');
-      setAnnouncements(res.data.data || []);
-    } catch (err) {
-      console.error('Error fetching announcements:', err);
+      setAnnouncements(res.data?.data || res.data || []);
+    } catch {
+      toast.error('Failed to load announcements');
     } finally {
       setLoading(false);
     }
@@ -32,12 +32,12 @@ export default function Announcements() {
     setSubmitting(true);
     try {
       await api.post('/announcements', formData);
-      toast.success('Announcement published');
+      toast.success('Announcement broadcasted successfully!');
       setModalOpen(false);
-      setFormData({ title: '', message: '', priority: 'normal', expiry_date: '' });
+      setFormData({ title: '', content: '', priority: 'general' });
       fetchAnnouncements();
-    } catch (err) {
-      toast.error('Failed to create announcement');
+    } catch {
+      toast.error('Failed to post announcement');
     } finally {
       setSubmitting(false);
     }
@@ -49,51 +49,52 @@ export default function Announcements() {
       await api.delete(`/announcements/${id}`);
       toast.success('Announcement deleted');
       fetchAnnouncements();
-    } catch (err) {
+    } catch {
       toast.error('Failed to delete');
     }
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-6 max-w-7xl mx-auto animate-fade-in font-sans">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200/80 pb-5">
         <div>
-          <h1 className="text-2xl font-display font-bold text-white">Company Announcements</h1>
-          <p className="text-sm text-gray-400">Broadcast important notifications and updates to all employees.</p>
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-[#0B2D5C] tracking-tight">Company Announcements</h1>
+          <p className="text-xs font-medium text-slate-500 mt-1">Broadcast important notifications and organizational updates to all employees.</p>
         </div>
-        <button onClick={() => setModalOpen(true)} className="btn btn-primary">
-          <Plus className="w-4 h-4 mr-2" /> New Announcement
+        <button onClick={() => setModalOpen(true)} className="btn-primary py-2.5 px-4 text-xs font-bold shadow-soft flex items-center gap-1.5">
+          <Plus className="w-4 h-4" /> New Announcement
         </button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {loading ? (
-          <p className="text-gray-400">Loading announcements...</p>
+          <p className="text-slate-400 text-xs font-medium">Loading announcements...</p>
         ) : announcements.length === 0 ? (
-          <div className="col-span-2 card text-center py-12 text-gray-500">No announcements broadcasted yet.</div>
+          <div className="col-span-2 py-8">
+            <EmptyState icon={Megaphone} title="No Announcements" description="No company announcements broadcasted yet." />
+          </div>
         ) : (
           announcements.map((item) => (
-            <div key={item.id} className="card relative space-y-3 border border-white/5">
-              <div className="flex items-start justify-between">
+            <div key={item.id || item._id} className="bg-white border border-slate-200/90 rounded-[18px] p-5 shadow-soft space-y-3 relative hover:border-[#145DA0] transition-all">
+              <div className="flex items-start justify-between gap-2">
                 <div>
                   <span className={`badge ${
                     item.priority === 'urgent' ? 'badge-danger' :
                     item.priority === 'important' ? 'badge-warning' : 'badge-info'
-                  } uppercase text-[10px]`}>
-                    {item.priority}
+                  } uppercase text-[10px] font-bold`}>
+                    {item.priority || 'General'}
                   </span>
-                  <h3 className="text-lg font-semibold text-white mt-1">{item.title}</h3>
+                  <h3 className="text-base font-extrabold text-[#0B2D5C] mt-1.5">{item.title}</h3>
                 </div>
-                <button onClick={() => handleDelete(item.id)} className="btn btn-xs text-danger-400 hover:bg-danger-500/10">
+                <button onClick={() => handleDelete(item.id || item._id)} className="p-1.5 text-[#E5484D] hover:bg-[#FDE8E9] rounded-[8px] transition-colors" title="Delete">
                   <Trash2 className="w-4 h-4" />
                 </button>
               </div>
 
-              <p className="text-sm text-gray-300 whitespace-pre-wrap">{item.message}</p>
+              <p className="text-xs text-slate-700 whitespace-pre-wrap leading-relaxed">{item.content || item.message}</p>
 
-              <div className="pt-2 flex items-center justify-between text-xs text-gray-500 border-t border-white/5">
-                <span>Published: {item.publish_date}</span>
-                {item.expiry_date && <span>Expires: {item.expiry_date}</span>}
+              <div className="pt-2 flex items-center justify-between text-[10px] font-mono text-slate-400 border-t border-slate-100">
+                <span>Published: {new Date(item.createdAt || item.publish_date || Date.now()).toLocaleDateString('en-IN')}</span>
               </div>
             </div>
           ))
@@ -101,62 +102,64 @@ export default function Announcements() {
       </div>
 
       {modalOpen && (
-        <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title="Create Announcement">
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-xs font-medium text-gray-400 mb-1">Title</label>
-              <input
-                type="text"
-                required
-                value={formData.title}
-                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                className="input text-sm w-full"
-                placeholder="e.g. Annual Townhall Scheduled"
-              />
+        <div className="modal-backdrop">
+          <div className="modal max-w-md space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h3 className="text-base font-bold text-[#0B2D5C]">Post Announcement</h3>
+              <button onClick={() => setModalOpen(false)} className="text-slate-400 hover:text-slate-600 p-1">
+                <X size={18} />
+              </button>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="block text-xs font-medium text-gray-400 mb-1">Priority</label>
+                <label className="form-label">Title</label>
+                <input
+                  type="text"
+                  required
+                  value={formData.title}
+                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                  className="input text-xs"
+                  placeholder="e.g. Townhall Meeting Schedule"
+                />
+              </div>
+
+              <div>
+                <label className="form-label">Priority</label>
                 <select
                   value={formData.priority}
                   onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
-                  className="input text-sm w-full"
+                  className="input text-xs font-semibold cursor-pointer"
                 >
-                  <option value="normal">Normal</option>
+                  <option value="general">General</option>
                   <option value="important">Important</option>
                   <option value="urgent">Urgent</option>
                 </select>
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-gray-400 mb-1">Expiry Date (Optional)</label>
-                <input
-                  type="date"
-                  value={formData.expiry_date}
-                  onChange={(e) => setFormData({ ...formData, expiry_date: e.target.value })}
-                  className="input text-sm w-full"
+                <label className="form-label">Content</label>
+                <textarea
+                  required
+                  rows={4}
+                  value={formData.content}
+                  onChange={(e) => setFormData({ ...formData, content: e.target.value })}
+                  className="input text-xs"
+                  placeholder="Write the announcement details..."
                 />
               </div>
-            </div>
 
-            <div>
-              <label className="block text-xs font-medium text-gray-400 mb-1">Message</label>
-              <textarea
-                required
-                value={formData.message}
-                onChange={(e) => setFormData({ ...formData, message: e.target.value })}
-                className="input text-sm w-full h-24"
-                placeholder="Write announcement message..."
-              />
-            </div>
-
-            <div className="flex justify-end gap-3 pt-2">
-              <button type="button" onClick={() => setModalOpen(false)} className="btn btn-ghost text-sm">Cancel</button>
-              <button disabled={submitting} type="submit" className="btn btn-primary text-sm">Publish</button>
-            </div>
-          </form>
-        </Modal>
+              <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+                <button type="button" onClick={() => setModalOpen(false)} className="btn-secondary text-xs">
+                  Cancel
+                </button>
+                <button type="submit" disabled={submitting} className="btn-primary text-xs font-bold">
+                  {submitting ? 'Posting...' : 'Broadcast Announcement'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
     </div>
   );

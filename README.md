@@ -1,4 +1,4 @@
-# MASTER PROMPT
+# MASTER PROMPT The work is going good
 
 Build a complete, modern, responsive, full-stack **Human Resource Management System (HRMS)** named:
 

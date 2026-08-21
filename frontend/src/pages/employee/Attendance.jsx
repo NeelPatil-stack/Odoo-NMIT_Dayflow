@@ -1,11 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
-  Clock, LogIn, LogOut, RefreshCw,
-  CheckCircle, Loader2, ChevronLeft, ChevronRight
+  Clock, LogIn, LogOut, RefreshCw, CheckCircle2,
+  Loader2, Check, ShieldAlert, ArrowRight, X
 } from 'lucide-react';
 import toast from 'react-hot-toast';
-import Modal from '../../components/ui/Modal';
 import api from '../../services/api';
+import { useLanguage } from '../../context/LanguageContext';
+import EmptyState from '../../components/ui/EmptyState';
 
 const fmtTime = (iso) => {
   if (!iso) return '—';
@@ -30,9 +31,10 @@ const fmtDate = (iso) => {
 };
 
 const calcHours = (inTime, outTime) => {
-  if (!inTime || !outTime) return '—';
+  if (!inTime) return '—';
   try {
-    const diff = (new Date(outTime) - new Date(inTime)) / 3600000;
+    const end = outTime ? new Date(outTime) : new Date();
+    const diff = (end - new Date(inTime)) / 3600000;
     if (diff < 0 || isNaN(diff)) return '—';
     const h = Math.floor(diff);
     const m = Math.round((diff - h) * 60);
@@ -44,68 +46,15 @@ const calcHours = (inTime, outTime) => {
 
 function getStatusBadge(status) {
   const s = String(status || '').toLowerCase();
-  if (s === 'present') return <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">Present</span>;
-  if (s === 'absent') return <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-rose-50 text-rose-700 border border-rose-200">Absent</span>;
-  if (s === 'late') return <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-amber-50 text-amber-700 border border-amber-200">Late</span>;
-  if (s === 'half_day') return <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-sky-50 text-sky-700 border border-sky-200">Half Day</span>;
-  return <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-700 border border-slate-200">{s || '—'}</span>;
-}
-
-function TodayCard({ today, onCheckIn, onCheckOut, loading }) {
-  const checkInVal = today?.checkIn || today?.check_in;
-  const checkOutVal = today?.checkOut || today?.check_out;
-
-  return (
-    <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-xs space-y-5">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-slate-100 pb-4">
-        <div>
-          <h2 className="text-base font-bold text-slate-900">Today's Attendance Status</h2>
-          <p className="text-xs text-slate-500 mt-0.5">{new Date().toLocaleDateString('en-IN', { weekday:'long', day:'2-digit', month:'long', year:'numeric' })}</p>
-        </div>
-        {getStatusBadge(today?.status)}
-      </div>
-
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        {[
-          { label: 'Check In',  value: fmtTime(checkInVal),  icon: LogIn,   color: 'text-emerald-600' },
-          { label: 'Check Out', value: fmtTime(checkOutVal), icon: LogOut,  color: 'text-rose-600' },
-          { label: 'Working Hours', value: calcHours(checkInVal, checkOutVal), icon: Clock, color: 'text-sky-600' },
-          { label: 'Status',    value: today?.status || 'absent', icon: CheckCircle, color: 'text-indigo-600' },
-        ].map(({ label, value, icon: Icon, color }) => (
-          <div key={label} className="bg-slate-50 border border-slate-200/80 rounded-lg p-3.5">
-            <div className="flex items-center gap-1.5 mb-1.5">
-              <Icon size={14} className={color} />
-              <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">{label}</span>
-            </div>
-            <p className="text-sm font-bold text-slate-900 capitalize">{value}</p>
-          </div>
-        ))}
-      </div>
-
-      <div className="pt-2 flex gap-3">
-        {!checkInVal && (
-          <button className="btn-primary bg-emerald-600 hover:bg-emerald-700 py-2 px-4 text-xs shadow-xs" onClick={onCheckIn} disabled={loading}>
-            {loading ? <Loader2 size={14} className="animate-spin mr-1.5" /> : <LogIn size={14} className="mr-1.5" />}
-            Check In
-          </button>
-        )}
-        {checkInVal && !checkOutVal && (
-          <button className="btn-primary bg-rose-600 hover:bg-rose-700 py-2 px-4 text-xs shadow-xs" onClick={onCheckOut} disabled={loading}>
-            {loading ? <Loader2 size={14} className="animate-spin mr-1.5" /> : <LogOut size={14} className="mr-1.5" />}
-            Check Out
-          </button>
-        )}
-        {checkInVal && checkOutVal && (
-          <div className="flex items-center gap-2 text-emerald-700 text-xs font-semibold bg-emerald-50 px-3 py-1.5 rounded-md border border-emerald-200">
-            <CheckCircle size={15} /> Session complete for today
-          </div>
-        )}
-      </div>
-    </div>
-  );
+  if (s === 'present') return <span className="badge-success">Present</span>;
+  if (s === 'absent') return <span className="badge-danger font-semibold">Absent</span>;
+  if (s === 'late') return <span className="badge-warning font-semibold">Late</span>;
+  if (s === 'half_day') return <span className="badge-info font-semibold">Half Day</span>;
+  return <span className="badge-gray">{s || '—'}</span>;
 }
 
 export default function EmployeeAttendance() {
+  const { t } = useLanguage();
   const [today, setToday] = useState(null);
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -116,6 +65,13 @@ export default function EmployeeAttendance() {
   const [regCheckOut, setRegCheckOut] = useState('');
   const [regReason, setRegReason] = useState('');
   const [regSubmitting, setRegSubmitting] = useState(false);
+  const [nowTime, setNowTime] = useState(new Date());
+
+  // Live clock timer
+  useEffect(() => {
+    const timer = setInterval(() => setNowTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -139,7 +95,7 @@ export default function EmployeeAttendance() {
     setActionLoading(true);
     try {
       await api.post('/attendance/checkin');
-      toast.success('Checked in successfully!');
+      toast.success('Successfully checked in! 🎉');
       loadData();
     } catch (err) {
       toast.error(err.response?.data?.message || 'Check-in failed');
@@ -152,7 +108,7 @@ export default function EmployeeAttendance() {
     setActionLoading(true);
     try {
       await api.post('/attendance/checkout');
-      toast.success('Checked out successfully!');
+      toast.success('Successfully checked out! 👋');
       loadData();
     } catch (err) {
       toast.error(err.response?.data?.message || 'Check-out failed');
@@ -181,55 +137,229 @@ export default function EmployeeAttendance() {
     }
   };
 
+  const checkInVal = today?.checkIn || today?.check_in;
+  const checkOutVal = today?.checkOut || today?.check_out;
+  const isCheckedIn = !!checkInVal && !checkOutVal;
+  const isCheckedOut = !!checkInVal && !!checkOutVal;
+
   return (
-    <div className="space-y-6 max-w-7xl mx-auto">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-5">
+    <div className="space-y-6 max-w-7xl mx-auto animate-fade-in font-sans">
+      {/* ── Level 1: Page Header ── */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200/80 pb-5">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">My Attendance Log</h1>
-          <p className="text-xs font-medium text-slate-500 mt-1">Track daily check-ins, check-outs, and attendance history.</p>
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-[#0B2D5C] tracking-tight">
+            {t('My Attendance')}
+          </h1>
+          <p className="text-xs font-medium text-slate-500 mt-1">
+            {t('Track your workday status, active hours, and attendance log.')}
+          </p>
         </div>
-        <button onClick={() => setRegModal(true)} className="btn-secondary py-2 px-3 text-xs">
-          Request Regularization
+        <button
+          onClick={() => setRegModal(true)}
+          className="btn-secondary py-2.5 px-4 text-xs font-bold shadow-xs hover:border-[#145DA0] transition-all flex items-center gap-1.5"
+        >
+          <ShieldAlert className="w-4 h-4 text-[#F59A23]" /> {t('Request Regularization')}
         </button>
       </div>
 
-      {/* Today card */}
-      <TodayCard
-        today={today}
-        onCheckIn={handleCheckIn}
-        onCheckOut={handleCheckOut}
-        loading={actionLoading}
-      />
+      {/* ── Level 2: DEEP NAVY ATTENDANCE HERO CARD (Option A Requirement) ── */}
+      <div className="bg-[#0B2D5C] text-white rounded-[24px] p-6 sm:p-8 shadow-[0_20px_40px_-10px_rgba(11,45,92,0.35)] relative overflow-hidden">
+        {/* Subtle Bridge Curve & Dotted Grid Background */}
+        <div
+          className="absolute inset-0 opacity-10 pointer-events-none"
+          style={{
+            backgroundImage: 'radial-gradient(rgba(255, 255, 255, 0.4) 1px, transparent 1px)',
+            backgroundSize: '20px 20px',
+          }}
+        />
+        <svg className="absolute -right-20 -bottom-20 w-96 h-96 opacity-15 pointer-events-none" viewBox="0 0 400 400" fill="none">
+          <path d="M 50 350 Q 200 100 350 350" stroke="#F59A23" strokeWidth="4" />
+          <path d="M 80 350 Q 200 150 320 350" stroke="#145DA0" strokeWidth="3" />
+        </svg>
 
-      {/* History Table */}
-      <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-xs space-y-4">
+        <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-8">
+          {/* Left Column: State & Actions */}
+          <div className="space-y-4 max-w-xl">
+            <div className="inline-flex items-center gap-3">
+              <span className="text-[11px] font-bold text-[#F59A23] uppercase tracking-widest bg-white/10 px-3 py-1 rounded-full border border-white/15">
+                TODAY
+              </span>
+              <span className="text-xs font-semibold text-slate-300">
+                {nowTime.toLocaleDateString('en-IN', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' })}
+              </span>
+            </div>
+
+            {/* Live Clock Display */}
+            <div>
+              <p className="text-3xl sm:text-4xl font-extrabold tracking-tight text-white font-mono">
+                {nowTime.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}
+              </p>
+            </div>
+
+            {/* Attendance States (Section 6 requirement) */}
+            {!checkInVal && (
+              <div className="space-y-3 pt-1">
+                <h2 className="text-xl font-bold text-white">Ready to start your day?</h2>
+                <p className="text-xs text-slate-300 font-medium">Check in now to record your morning shift start time.</p>
+                <button
+                  onClick={handleCheckIn}
+                  disabled={actionLoading}
+                  className="btn-accent bg-[#F59A23] hover:bg-[#E08512] text-white py-3 px-6 text-xs font-bold shadow-lg hover:-translate-y-0.5 active:scale-98 cursor-pointer flex items-center gap-2"
+                >
+                  {actionLoading ? <Loader2 size={16} className="animate-spin" /> : <LogIn size={16} />}
+                  <span>Check In</span>
+                  <ArrowRight size={14} />
+                </button>
+              </div>
+            )}
+
+            {isCheckedIn && (
+              <div className="space-y-3 pt-1">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#22A06B]/20 border border-[#22A06B]/40 text-xs font-bold text-[#22A06B]">
+                  <span className="w-2.5 h-2.5 rounded-full bg-[#22A06B] animate-ping" />
+                  <span>● WORKING</span>
+                </div>
+                <h2 className="text-xl font-bold text-white">You're checked in</h2>
+                <p className="text-xs text-slate-300 font-medium">
+                  Checked in at <span className="font-mono text-white font-bold">{fmtTime(checkInVal)}</span> · Duration: <span className="font-mono text-[#F59A23] font-bold">{calcHours(checkInVal, checkOutVal)}</span>
+                </p>
+                <button
+                  onClick={handleCheckOut}
+                  disabled={actionLoading}
+                  className="btn-danger bg-[#E5484D] hover:bg-rose-700 text-white py-3 px-6 text-xs font-bold shadow-lg hover:-translate-y-0.5 active:scale-98 cursor-pointer flex items-center gap-2"
+                >
+                  {actionLoading ? <Loader2 size={16} className="animate-spin" /> : <LogOut size={16} />}
+                  <span>Check Out</span>
+                </button>
+              </div>
+            )}
+
+            {isCheckedOut && (
+              <div className="space-y-2 pt-1">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#22A06B]/20 border border-[#22A06B]/40 text-xs font-bold text-[#22A06B]">
+                  <CheckCircle2 size={15} />
+                  <span>✓ DAY COMPLETED</span>
+                </div>
+                <h2 className="text-xl font-bold text-white">Great job today!</h2>
+                <p className="text-xs text-slate-300 font-medium">
+                  Total shift duration: <span className="font-mono text-white font-bold">{calcHours(checkInVal, checkOutVal)}</span>
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* Right Column: Workday Progress Visual Arc & Graphic (Section 3 requirement) */}
+          <div className="hidden lg:flex flex-col items-center justify-center bg-white/5 border border-white/10 rounded-[20px] p-6 text-center w-72 shrink-0">
+            <div className="relative w-28 h-28 flex items-center justify-center mb-3">
+              <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+                <circle cx="50" cy="50" r="40" stroke="rgba(255,255,255,0.1)" strokeWidth="8" fill="none" />
+                <circle
+                  cx="50"
+                  cy="50"
+                  r="40"
+                  stroke="#F59A23"
+                  strokeWidth="8"
+                  fill="none"
+                  strokeDasharray="251.2"
+                  strokeDashoffset={isCheckedOut ? "0" : isCheckedIn ? "120" : "251.2"}
+                  strokeLinecap="round"
+                  className="transition-all duration-1000"
+                />
+              </svg>
+              <div className="absolute inset-0 flex flex-col items-center justify-center">
+                <Clock size={20} className="text-[#F59A23] mb-0.5" />
+                <span className="text-xs font-bold text-white font-mono">{calcHours(checkInVal, checkOutVal)}</span>
+              </div>
+            </div>
+            <p className="text-[11px] font-bold text-slate-300 uppercase tracking-wider">Workday Progress</p>
+            <p className="text-[10px] text-slate-400 mt-1">Shift hours tracked in real time</p>
+          </div>
+        </div>
+
+        {/* ── Section 8: WORKDAY TIMELINE ── */}
+        <div className="mt-8 pt-6 border-t border-white/10 relative">
+          <div className="flex items-center justify-between text-[11px] font-bold text-slate-300 mb-2">
+            <span>Check In</span>
+            <span>Now</span>
+            <span>Check Out</span>
+          </div>
+          {/* Progress bar line */}
+          <div className="w-full h-1.5 bg-white/10 rounded-full relative">
+            <div
+              className="h-full bg-gradient-to-r from-[#145DA0] via-[#F59A23] to-[#22A06B] rounded-full transition-all duration-500"
+              style={{
+                width: isCheckedOut ? '100%' : isCheckedIn ? '55%' : '0%',
+              }}
+            />
+            {/* Timeline Dots */}
+            <span className={`absolute left-0 top-1/2 -translate-y-1/2 w-3.5 h-3.5 rounded-full border-2 border-[#0B2D5C] ${checkInVal ? 'bg-[#22A06B]' : 'bg-white/30'}`} />
+            <span className={`absolute left-1/2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 rounded-full border-2 border-[#0B2D5C] ${isCheckedIn ? 'bg-[#F59A23] animate-ping' : isCheckedOut ? 'bg-[#22A06B]' : 'bg-white/30'}`} />
+            <span className={`absolute right-0 top-1/2 -translate-y-1/2 w-3.5 h-3.5 rounded-full border-2 border-[#0B2D5C] ${checkOutVal ? 'bg-[#22A06B]' : 'bg-white/30'}`} />
+          </div>
+          <div className="flex items-center justify-between text-[10px] font-mono text-slate-400 mt-2">
+            <span>{fmtTime(checkInVal)}</span>
+            <span>{isCheckedIn ? 'In Progress' : '—'}</span>
+            <span>{fmtTime(checkOutVal)}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Level 3: COMPACT HORIZONTAL SUMMARY STRIP (Section 7 requirement) ── */}
+      <div className="bg-white border border-slate-200/90 rounded-[18px] p-4 shadow-soft">
+        <div className="grid grid-cols-2 md:grid-cols-4 divide-y md:divide-y-0 md:divide-x divide-slate-100 gap-4 md:gap-0">
+          <div className="p-2 md:px-4 text-center md:text-left">
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">CHECK IN</p>
+            <p className="text-base font-extrabold text-[#0B2D5C] font-mono mt-0.5">{fmtTime(checkInVal)}</p>
+          </div>
+          <div className="p-2 md:px-4 text-center md:text-left">
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">CHECK OUT</p>
+            <p className="text-base font-extrabold text-[#0B2D5C] font-mono mt-0.5">{fmtTime(checkOutVal)}</p>
+          </div>
+          <div className="p-2 md:px-4 text-center md:text-left">
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">WORKING HOURS</p>
+            <p className="text-base font-extrabold text-[#F59A23] font-mono mt-0.5">{calcHours(checkInVal, checkOutVal)}</p>
+          </div>
+          <div className="p-2 md:px-4 text-center md:text-left">
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">STATUS</p>
+            <div className="mt-1">{getStatusBadge(today?.status || (checkInVal ? 'present' : 'absent'))}</div>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Level 4: ATTENDANCE HISTORY TABLE (Section 9 requirement) ── */}
+      <div className="bg-white border border-slate-200/90 rounded-[20px] p-5 shadow-soft space-y-4">
         <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-          <h2 className="text-sm font-bold text-slate-900">Attendance History</h2>
-          <button onClick={loadData} className="p-1.5 border border-slate-200 rounded-md hover:bg-slate-50 text-slate-600">
-            <RefreshCw className="w-3.5 h-3.5" />
+          <h2 className="text-base font-extrabold text-[#0B2D5C]">Attendance History</h2>
+          <button onClick={loadData} className="btn-secondary btn-icon" title="Refresh history">
+            <RefreshCw className="w-4 h-4" />
           </button>
         </div>
 
-        <div className="overflow-x-auto border border-slate-100 rounded-lg">
-          <table className="w-full text-left text-xs border-collapse">
-            <thead className="bg-slate-50/80 border-b border-slate-200 text-slate-600 font-semibold uppercase tracking-wider">
+        <div className="table-container border-none rounded-none">
+          <table className="data-table">
+            <thead className="sticky top-0 bg-slate-50">
               <tr>
-                <th className="py-3 px-4">Date</th>
-                <th className="py-3 px-4">Check In</th>
-                <th className="py-3 px-4">Check Out</th>
-                <th className="py-3 px-4">Working Hours</th>
-                <th className="py-3 px-4">Status</th>
+                <th>Date</th>
+                <th>Check In</th>
+                <th>Check Out</th>
+                <th>Working Hours</th>
+                <th>Status</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 text-slate-800 font-medium">
+            <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan="5" className="py-10 text-center text-slate-400">Loading history...</td>
+                  <td colSpan="5" className="py-10 text-center text-slate-400 font-medium">Loading history...</td>
                 </tr>
               ) : history.length === 0 ? (
                 <tr>
-                  <td colSpan="5" className="py-10 text-center text-slate-400">No past attendance records found.</td>
+                  <td colSpan="5" className="py-8">
+                    <EmptyState
+                      icon={Clock}
+                      title="No Attendance History"
+                      description="No past attendance records found."
+                    />
+                  </td>
                 </tr>
               ) : (
                 history.map((row, idx) => {
@@ -238,12 +368,12 @@ export default function EmployeeAttendance() {
                   const hrs = calcHours(row.checkIn || row.check_in, row.checkOut || row.check_out);
 
                   return (
-                    <tr key={idx} className="hover:bg-slate-50/60 transition-colors">
-                      <td className="py-3 px-4 text-slate-900 font-semibold">{fmtDate(row.date)}</td>
-                      <td className="py-3 px-4 text-slate-800 font-semibold">{checkInTime}</td>
-                      <td className="py-3 px-4 text-slate-800 font-semibold">{checkOutTime}</td>
-                      <td className="py-3 px-4 text-slate-600 font-mono">{hrs}</td>
-                      <td className="py-3 px-4">{getStatusBadge(row.status)}</td>
+                    <tr key={idx} className="hover:bg-[#F0F7FF]/50 transition-colors">
+                      <td className="text-[#172033] font-bold text-xs">{fmtDate(row.date)}</td>
+                      <td className="font-bold text-[#0B2D5C] text-xs font-mono">{checkInTime}</td>
+                      <td className="font-bold text-[#0B2D5C] text-xs font-mono">{checkOutTime}</td>
+                      <td className="text-slate-700 text-xs font-mono font-bold">{hrs}</td>
+                      <td>{getStatusBadge(row.status)}</td>
                     </tr>
                   );
                 })
@@ -255,61 +385,70 @@ export default function EmployeeAttendance() {
 
       {/* Regularization Modal */}
       {regModal && (
-        <Modal title="Request Attendance Regularization" onClose={() => setRegModal(false)}>
-          <form onSubmit={handleRegSubmit} className="space-y-4">
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">Date</label>
-              <input
-                type="date"
-                required
-                value={regDate}
-                onChange={(e) => setRegDate(e.target.value)}
-                className="input text-xs"
-              />
+        <div className="modal-backdrop">
+          <div className="modal max-w-md space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h3 className="text-base font-bold text-[#0B2D5C]">Request Attendance Regularization</h3>
+              <button onClick={() => setRegModal(false)} className="text-slate-400 hover:text-slate-600 p-1">
+                <X size={18} />
+              </button>
             </div>
-            <div className="grid grid-cols-2 gap-3">
+
+            <form onSubmit={handleRegSubmit} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Requested Check In</label>
+                <label className="form-label">Date</label>
                 <input
-                  type="time"
+                  type="date"
                   required
-                  value={regCheckIn}
-                  onChange={(e) => setRegCheckIn(e.target.value)}
+                  value={regDate}
+                  onChange={(e) => setRegDate(e.target.value)}
                   className="input text-xs"
                 />
               </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="form-label">Requested Check In</label>
+                  <input
+                    type="time"
+                    required
+                    value={regCheckIn}
+                    onChange={(e) => setRegCheckIn(e.target.value)}
+                    className="input text-xs"
+                  />
+                </div>
+                <div>
+                  <label className="form-label">Requested Check Out</label>
+                  <input
+                    type="time"
+                    required
+                    value={regCheckOut}
+                    onChange={(e) => setRegCheckOut(e.target.value)}
+                    className="input text-xs"
+                  />
+                </div>
+              </div>
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Requested Check Out</label>
-                <input
-                  type="time"
+                <label className="form-label">Reason</label>
+                <textarea
                   required
-                  value={regCheckOut}
-                  onChange={(e) => setRegCheckOut(e.target.value)}
+                  rows={3}
+                  value={regReason}
+                  onChange={(e) => setRegReason(e.target.value)}
+                  placeholder="Explain why check in/out was missed..."
                   className="input text-xs"
                 />
               </div>
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">Reason</label>
-              <textarea
-                required
-                rows={3}
-                value={regReason}
-                onChange={(e) => setRegReason(e.target.value)}
-                placeholder="Explain why check in/out was missed..."
-                className="input text-xs"
-              />
-            </div>
-            <div className="flex justify-end gap-2 pt-2">
-              <button type="button" onClick={() => setRegModal(false)} className="btn-secondary text-xs">
-                Cancel
-              </button>
-              <button type="submit" disabled={regSubmitting} className="btn-primary text-xs">
-                {regSubmitting ? 'Submitting...' : 'Submit Request'}
-              </button>
-            </div>
-          </form>
-        </Modal>
+              <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+                <button type="button" onClick={() => setRegModal(false)} className="btn-secondary text-xs">
+                  Cancel
+                </button>
+                <button type="submit" disabled={regSubmitting} className="btn-primary text-xs font-bold">
+                  {regSubmitting ? 'Submitting...' : 'Submit Request'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
     </div>
   );

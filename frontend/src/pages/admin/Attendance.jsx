@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
-import { Clock, Search, RefreshCw, ShieldAlert, Check, X } from 'lucide-react';
+import { Clock, Search, RefreshCw, ShieldAlert, Check, X, Calendar } from 'lucide-react';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
+import EmptyState from '../../components/ui/EmptyState';
 
 function fmtTime(d) {
   if (!d) return '—';
@@ -46,10 +47,10 @@ export default function AdminAttendance() {
   const handleReview = async (id, status) => {
     try {
       await api.patch(`/attendance/regularization/${id}/review`, { status });
-      toast.success(`Request ${status} successfully`);
+      toast.success(`Request ${status === 'approved' ? 'approved' : 'rejected'} successfully!`);
       fetchData();
     } catch (err) {
-      toast.error('Failed to process request');
+      toast.error('Failed to review request.');
     }
   };
 
@@ -61,39 +62,43 @@ export default function AdminAttendance() {
 
   const getStatusBadge = (status) => {
     const s = String(status || '').toLowerCase();
-    if (s === 'present') return <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">Present</span>;
-    if (s === 'absent') return <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-rose-50 text-rose-700 border border-rose-200">Absent</span>;
-    if (s === 'late') return <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-amber-50 text-amber-700 border border-amber-200">Late</span>;
-    if (s === 'half_day') return <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-sky-50 text-sky-700 border border-sky-200">Half Day</span>;
-    return <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-700 border border-slate-200">{s}</span>;
+    if (s === 'present') return <span className="badge-success">Present</span>;
+    if (s === 'absent') return <span className="badge-danger font-semibold">Absent</span>;
+    if (s === 'late') return <span className="badge-warning font-semibold">Late</span>;
+    if (s === 'half_day') return <span className="badge-info font-semibold">Half Day</span>;
+    return <span className="badge-gray">{s}</span>;
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-7xl mx-auto animate-fade-in font-sans">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-5">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200/80 pb-5">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Attendance Management</h1>
-          <p className="text-xs font-medium text-slate-500 mt-1">Monitor daily check-ins, working hours, and attendance regularization requests.</p>
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-[#0B2D5C] tracking-tight">
+            Attendance Management
+          </h1>
+          <p className="text-xs font-medium text-slate-500 mt-1">
+            Monitor daily employee check-ins, working hours, and review regularization requests.
+          </p>
         </div>
 
         <div className="flex items-center gap-2">
           <button
             onClick={() => setActiveTab('daily')}
-            className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
+            className={`flex items-center gap-2 px-3.5 py-2.5 rounded-[12px] text-xs font-bold transition-all cursor-pointer ${
               activeTab === 'daily'
-                ? 'bg-slate-900 text-white shadow-xs'
-                : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                ? 'bg-[#0B2D5C] text-white shadow-soft'
+                : 'text-slate-600 hover:bg-slate-100 hover:text-[#0B2D5C]'
             }`}
           >
             <Clock className="w-4 h-4" /> Daily Log
           </button>
           <button
             onClick={() => setActiveTab('regularization')}
-            className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
+            className={`flex items-center gap-2 px-3.5 py-2.5 rounded-[12px] text-xs font-bold transition-all cursor-pointer ${
               activeTab === 'regularization'
-                ? 'bg-slate-900 text-white shadow-xs'
-                : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                ? 'bg-[#0B2D5C] text-white shadow-soft'
+                : 'text-slate-600 hover:bg-slate-100 hover:text-[#0B2D5C]'
             }`}
           >
             <ShieldAlert className="w-4 h-4" /> Regularizations
@@ -102,7 +107,7 @@ export default function AdminAttendance() {
       </div>
 
       {activeTab === 'daily' ? (
-        <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-xs space-y-4">
+        <div className="card p-5 shadow-soft space-y-4">
           {/* Controls */}
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-3 w-full md:w-auto">
@@ -112,43 +117,49 @@ export default function AdminAttendance() {
                 onChange={(e) => setSelectedDate(e.target.value)}
                 className="input text-xs py-2 max-w-[180px]"
               />
-              <button onClick={fetchData} className="p-2 border border-slate-200 rounded-lg hover:bg-slate-50 text-slate-600">
+              <button onClick={fetchData} className="btn-secondary btn-icon" title="Refresh">
                 <RefreshCw className="w-4 h-4" />
               </button>
             </div>
 
             <div className="relative w-full md:w-72">
-              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
               <input
                 type="text"
-                placeholder="Search employee..."
+                placeholder="Search employee name or ID..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="input pl-9 text-xs py-2"
+                className="input pl-10 text-xs py-2 font-sans"
               />
             </div>
           </div>
 
           {/* Table */}
-          <div className="overflow-x-auto border border-slate-100 rounded-lg">
-            <table className="w-full text-left text-xs border-collapse">
-              <thead className="bg-slate-50/80 border-b border-slate-200 text-slate-600 font-semibold uppercase tracking-wider">
+          <div className="table-container">
+            <table className="data-table">
+              <thead>
                 <tr>
-                  <th className="py-3 px-4">Employee</th>
-                  <th className="py-3 px-4">Check In</th>
-                  <th className="py-3 px-4">Check Out</th>
-                  <th className="py-3 px-4">Working Hours</th>
-                  <th className="py-3 px-4">Status</th>
+                  <th>Employee</th>
+                  <th>Check In</th>
+                  <th>Check Out</th>
+                  <th>Working Hours</th>
+                  <th>Status</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 text-slate-800 font-medium">
+              <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan="5" className="py-10 text-center text-slate-400">Loading attendance data...</td>
+                    <td colSpan="5" className="py-10 text-center text-slate-400 font-medium">Loading attendance data...</td>
                   </tr>
                 ) : filteredAttendance.length === 0 ? (
                   <tr>
-                    <td colSpan="5" className="py-10 text-center text-slate-400">No attendance records found for this date.</td>
+                    <td colSpan="5" className="py-8">
+                      <EmptyState
+                        icon={Clock}
+                        title="No Attendance Records"
+                        description="No attendance records found for this date."
+                      />
+                    </td>
                   </tr>
                 ) : (
                   filteredAttendance.map((item, idx) => {
@@ -159,15 +170,15 @@ export default function AdminAttendance() {
                     const hrs = item.workingHours || item.working_hours ? `${item.workingHours || item.working_hours} hrs` : '—';
 
                     return (
-                      <tr key={item.id || idx} className="hover:bg-slate-50/60 transition-colors">
-                        <td className="py-3 px-4">
-                          <p className="font-semibold text-slate-900">{empName}</p>
+                      <tr key={item.id || idx} className="hover:bg-[#F0F7FF]/50 transition-colors">
+                        <td>
+                          <p className="font-bold text-[#172033] text-xs">{empName}</p>
                           <p className="text-[10px] text-slate-400 font-mono">{empId}</p>
                         </td>
-                        <td className="py-3 px-4 font-semibold text-slate-800">{checkInTime}</td>
-                        <td className="py-3 px-4 font-semibold text-slate-800">{checkOutTime}</td>
-                        <td className="py-3 px-4 text-slate-600 font-mono">{hrs}</td>
-                        <td className="py-3 px-4">{getStatusBadge(item.status)}</td>
+                        <td className="font-bold text-[#0B2D5C] text-xs font-mono">{checkInTime}</td>
+                        <td className="font-bold text-[#0B2D5C] text-xs font-mono">{checkOutTime}</td>
+                        <td className="text-slate-600 text-xs font-mono font-bold">{hrs}</td>
+                        <td>{getStatusBadge(item.status)}</td>
                       </tr>
                     );
                   })
@@ -177,53 +188,59 @@ export default function AdminAttendance() {
           </div>
         </div>
       ) : (
-        /* Regularization tab */
-        <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-xs space-y-4">
-          <div className="overflow-x-auto border border-slate-100 rounded-lg">
-            <table className="w-full text-left text-xs border-collapse">
-              <thead className="bg-slate-50/80 border-b border-slate-200 text-slate-600 font-semibold uppercase tracking-wider">
+        /* Regularization Tab */
+        <div className="card p-5 shadow-soft space-y-4">
+          <div className="table-container">
+            <table className="data-table">
+              <thead>
                 <tr>
-                  <th className="py-3 px-4">Employee</th>
-                  <th className="py-3 px-4">Date</th>
-                  <th className="py-3 px-4">Requested Times</th>
-                  <th className="py-3 px-4">Reason</th>
-                  <th className="py-3 px-4">Status</th>
-                  <th className="py-3 px-4 text-right">Actions</th>
+                  <th>Employee</th>
+                  <th>Date</th>
+                  <th>Requested Times</th>
+                  <th>Reason</th>
+                  <th>Status</th>
+                  <th className="text-right">Action</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 text-slate-800 font-medium">
+              <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan="6" className="py-10 text-center text-slate-400">Loading regularization requests...</td>
+                    <td colSpan="6" className="py-10 text-center text-slate-400 font-medium">Loading requests...</td>
                   </tr>
                 ) : regularizations.length === 0 ? (
                   <tr>
-                    <td colSpan="6" className="py-10 text-center text-slate-400">No pending regularization requests.</td>
+                    <td colSpan="6" className="py-8">
+                      <EmptyState
+                        icon={ShieldAlert}
+                        title="No Pending Requests"
+                        description="No attendance regularization requests pending approval."
+                      />
+                    </td>
                   </tr>
                 ) : (
                   regularizations.map((req) => {
                     const empName = req.employee?.name || `${req.employee?.firstName || req.employee?.first_name || ''} ${req.employee?.lastName || req.employee?.last_name || ''}`.trim() || 'Employee';
                     return (
-                      <tr key={req.id} className="hover:bg-slate-50/60 transition-colors">
-                        <td className="py-3 px-4 font-semibold text-slate-900">{empName}</td>
-                        <td className="py-3 px-4 text-slate-600">{req.date}</td>
-                        <td className="py-3 px-4 text-slate-800 font-semibold">
+                      <tr key={req.id} className="hover:bg-[#F0F7FF]/50 transition-colors">
+                        <td className="font-bold text-[#172033] text-xs">{empName}</td>
+                        <td className="text-slate-600 text-xs font-medium">{req.date}</td>
+                        <td className="font-bold text-[#0B2D5C] text-xs font-mono">
                           {fmtTime(req.requested_check_in)} - {fmtTime(req.requested_check_out)}
                         </td>
-                        <td className="py-3 px-4 text-slate-500 max-w-xs truncate">{req.reason}</td>
-                        <td className="py-3 px-4">{getStatusBadge(req.status)}</td>
-                        <td className="py-3 px-4 text-right">
-                          <div className="flex items-center justify-end gap-2">
+                        <td className="text-slate-500 text-xs max-w-xs truncate">{req.reason}</td>
+                        <td>{getStatusBadge(req.status)}</td>
+                        <td className="text-right">
+                          <div className="flex items-center justify-end gap-1.5">
                             <button
                               onClick={() => handleReview(req.id, 'approved')}
-                              className="p-1.5 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded-md transition-colors"
+                              className="p-1.5 bg-[#E8F6F0] text-[#22A06B] hover:bg-emerald-200 rounded-[8px] transition-colors cursor-pointer"
                               title="Approve"
                             >
                               <Check className="w-4 h-4" />
                             </button>
                             <button
                               onClick={() => handleReview(req.id, 'rejected')}
-                              className="p-1.5 bg-rose-50 text-rose-700 hover:bg-rose-100 rounded-md transition-colors"
+                              className="p-1.5 bg-[#FDE8E9] text-[#E5484D] hover:bg-rose-200 rounded-[8px] transition-colors cursor-pointer"
                               title="Reject"
                             >
                               <X className="w-4 h-4" />
