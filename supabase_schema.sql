@@ -1,13 +1,13 @@
 -- ============================================================
--- KaaryaSetu / Dayflow HRMS — Supabase PostgreSQL Schema
--- Run this entire file in your Supabase SQL Editor
+-- KaaryaSetu / Dayflow HRMS — Complete Supabase PostgreSQL Schema & Seed Data
+-- Paste and execute this entire file in your Supabase SQL Editor
 -- ============================================================
 
 -- Enable UUID extension
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- ============================================================
--- DEPARTMENTS
+-- 1. DEPARTMENTS
 -- ============================================================
 CREATE TABLE IF NOT EXISTS departments (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -21,7 +21,7 @@ CREATE TABLE IF NOT EXISTS departments (
 );
 
 -- ============================================================
--- DESIGNATIONS
+-- 2. DESIGNATIONS
 -- ============================================================
 CREATE TABLE IF NOT EXISTS designations (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -34,7 +34,7 @@ CREATE TABLE IF NOT EXISTS designations (
 );
 
 -- ============================================================
--- EMPLOYEES
+-- 3. EMPLOYEES
 -- ============================================================
 CREATE TABLE IF NOT EXISTS employees (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -59,12 +59,13 @@ CREATE TABLE IF NOT EXISTS employees (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Add self-referencing FK for department head after employees table exists
+-- Foreign key for department head
 ALTER TABLE departments
+  DROP CONSTRAINT IF EXISTS fk_dept_head,
   ADD CONSTRAINT fk_dept_head FOREIGN KEY (department_head_id) REFERENCES employees(id) ON DELETE SET NULL;
 
 -- ============================================================
--- USERS (Authentication)
+-- 4. USERS (Authentication & Role Authorization)
 -- ============================================================
 CREATE TABLE IF NOT EXISTS users (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -82,7 +83,7 @@ CREATE TABLE IF NOT EXISTS users (
 );
 
 -- ============================================================
--- ATTENDANCE
+-- 5. ATTENDANCE
 -- ============================================================
 CREATE TABLE IF NOT EXISTS attendance (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -101,7 +102,7 @@ CREATE TABLE IF NOT EXISTS attendance (
 );
 
 -- ============================================================
--- ATTENDANCE REGULARIZATION
+-- 6. ATTENDANCE REGULARIZATION
 -- ============================================================
 CREATE TABLE IF NOT EXISTS attendance_regularization (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -120,7 +121,7 @@ CREATE TABLE IF NOT EXISTS attendance_regularization (
 );
 
 -- ============================================================
--- LEAVE BALANCES
+-- 7. LEAVE BALANCES
 -- ============================================================
 CREATE TABLE IF NOT EXISTS leave_balances (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -136,7 +137,7 @@ CREATE TABLE IF NOT EXISTS leave_balances (
 );
 
 -- ============================================================
--- LEAVES
+-- 8. LEAVES
 -- ============================================================
 CREATE TABLE IF NOT EXISTS leaves (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -156,7 +157,7 @@ CREATE TABLE IF NOT EXISTS leaves (
 );
 
 -- ============================================================
--- SALARY STRUCTURES
+-- 9. SALARY STRUCTURES
 -- ============================================================
 CREATE TABLE IF NOT EXISTS salary_structures (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -175,7 +176,7 @@ CREATE TABLE IF NOT EXISTS salary_structures (
 );
 
 -- ============================================================
--- PAYROLL
+-- 10. PAYROLL
 -- ============================================================
 CREATE TABLE IF NOT EXISTS payroll (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -198,7 +199,7 @@ CREATE TABLE IF NOT EXISTS payroll (
 );
 
 -- ============================================================
--- HOLIDAYS
+-- 11. HOLIDAYS
 -- ============================================================
 CREATE TABLE IF NOT EXISTS holidays (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -210,7 +211,7 @@ CREATE TABLE IF NOT EXISTS holidays (
 );
 
 -- ============================================================
--- ANNOUNCEMENTS
+-- 12. ANNOUNCEMENTS
 -- ============================================================
 CREATE TABLE IF NOT EXISTS announcements (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -225,12 +226,12 @@ CREATE TABLE IF NOT EXISTS announcements (
 );
 
 -- ============================================================
--- NOTIFICATIONS
+-- 13. NOTIFICATIONS
 -- ============================================================
 CREATE TABLE IF NOT EXISTS notifications (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   recipient_id UUID REFERENCES employees(id) ON DELETE CASCADE,
-  recipient_role VARCHAR(20),  -- 'hr', 'admin', 'employee', 'all'
+  recipient_role VARCHAR(20),
   title VARCHAR(200) NOT NULL,
   message TEXT NOT NULL,
   type VARCHAR(50) NOT NULL,
@@ -240,7 +241,7 @@ CREATE TABLE IF NOT EXISTS notifications (
 );
 
 -- ============================================================
--- AUDIT LOGS
+-- 14. AUDIT LOGS
 -- ============================================================
 CREATE TABLE IF NOT EXISTS audit_logs (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -254,7 +255,7 @@ CREATE TABLE IF NOT EXISTS audit_logs (
 );
 
 -- ============================================================
--- ANONYMOUS FEEDBACK
+-- 15. ANONYMOUS FEEDBACK
 -- ============================================================
 CREATE TABLE IF NOT EXISTS anonymous_feedback (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -270,7 +271,7 @@ CREATE TABLE IF NOT EXISTS anonymous_feedback (
 );
 
 -- ============================================================
--- RECRUITMENT APPLICATIONS
+-- 16. RECRUITMENT APPLICATIONS
 -- ============================================================
 CREATE TABLE IF NOT EXISTS recruitment_applications (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -291,65 +292,90 @@ CREATE TABLE IF NOT EXISTS recruitment_applications (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- ============================================================
--- ASSETS (Optional)
--- ============================================================
-CREATE TABLE IF NOT EXISTS assets (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  asset_id VARCHAR(30) NOT NULL UNIQUE,
-  asset_name VARCHAR(100) NOT NULL,
-  category VARCHAR(50),
-  employee_id UUID REFERENCES employees(id) ON DELETE SET NULL,
-  assigned_date DATE,
-  return_date DATE,
-  status VARCHAR(20) DEFAULT 'available' CHECK (status IN ('available', 'assigned', 'returned', 'damaged')),
-  notes TEXT,
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- ============================================================
--- INDEXES for performance
--- ============================================================
-CREATE INDEX IF NOT EXISTS idx_attendance_employee_date ON attendance(employee_id, date);
-CREATE INDEX IF NOT EXISTS idx_attendance_date ON attendance(date);
-CREATE INDEX IF NOT EXISTS idx_leaves_employee ON leaves(employee_id);
-CREATE INDEX IF NOT EXISTS idx_leaves_status ON leaves(status);
-CREATE INDEX IF NOT EXISTS idx_notifications_recipient ON notifications(recipient_id);
-CREATE INDEX IF NOT EXISTS idx_notifications_role ON notifications(recipient_role);
-CREATE INDEX IF NOT EXISTS idx_audit_logs_entity ON audit_logs(entity, entity_id);
-CREATE INDEX IF NOT EXISTS idx_payroll_employee_month_year ON payroll(employee_id, month, year);
-CREATE INDEX IF NOT EXISTS idx_leave_balances_employee_year ON leave_balances(employee_id, year);
-CREATE INDEX IF NOT EXISTS idx_recruitment_score ON recruitment_applications(score DESC);
-
--- ============================================================
--- Auto-update updated_at trigger
--- ============================================================
-CREATE OR REPLACE FUNCTION update_updated_at_column()
-RETURNS TRIGGER AS $$
-BEGIN
-  NEW.updated_at = NOW();
-  RETURN NEW;
-END;
-$$ language 'plpgsql';
-
+-- Disable RLS on all tables so client applications can query directly using Supabase client
 DO $$
 DECLARE
   t TEXT;
 BEGIN
-  FOREACH t IN ARRAY ARRAY['departments','designations','employees','users','attendance',
+  FOREACH t IN ARRAY ARRAY[
+    'departments','designations','employees','users','attendance',
     'attendance_regularization','leave_balances','leaves','salary_structures',
-    'payroll','announcements','anonymous_feedback','recruitment_applications','assets']
+    'payroll','holidays','announcements','notifications','audit_logs',
+    'anonymous_feedback','recruitment_applications'
+  ]
   LOOP
-    EXECUTE format('DROP TRIGGER IF EXISTS update_%s_updated_at ON %s', t, t);
-    EXECUTE format(
-      'CREATE TRIGGER update_%s_updated_at BEFORE UPDATE ON %s FOR EACH ROW EXECUTE FUNCTION update_updated_at_column()',
-      t, t
-    );
+    EXECUTE format('ALTER TABLE %I DISABLE ROW LEVEL SECURITY;', t);
   END LOOP;
 END;
 $$;
 
 -- ============================================================
--- Done! Now run seed.sql to populate demo data.
+-- SEED DEMO DATA
 -- ============================================================
+
+-- Clear old records
+TRUNCATE TABLE audit_logs, notifications, announcements, holidays, payroll,
+  salary_structures, leaves, leave_balances, attendance_regularization,
+  attendance, recruitment_applications, anonymous_feedback CASCADE;
+
+-- Insert Departments
+INSERT INTO departments (id, name, code, description, status) VALUES
+  ('d1000000-0000-0000-0000-000000000001', 'Engineering', 'ENG', 'Software development and technical operations', 'active'),
+  ('d1000000-0000-0000-0000-000000000002', 'Human Resources', 'HR', 'People management and organizational culture', 'active'),
+  ('d1000000-0000-0000-0000-000000000003', 'Finance', 'FIN', 'Financial planning and accounting', 'active'),
+  ('d1000000-0000-0000-0000-000000000004', 'Marketing', 'MKT', 'Brand, growth, and communications', 'active'),
+  ('d1000000-0000-0000-0000-000000000005', 'Sales', 'SLS', 'Revenue generation and client management', 'active')
+ON CONFLICT (code) DO NOTHING;
+
+-- Insert Designations
+INSERT INTO designations (id, title, department_id, status) VALUES
+  ('e1000000-0000-0000-0000-000000000001', 'Software Developer', 'd1000000-0000-0000-0000-000000000001', 'active'),
+  ('e1000000-0000-0000-0000-000000000002', 'Senior Software Developer', 'd1000000-0000-0000-0000-000000000001', 'active'),
+  ('e1000000-0000-0000-0000-000000000003', 'QA Engineer', 'd1000000-0000-0000-0000-000000000001', 'active'),
+  ('e1000000-0000-0000-0000-000000000004', 'HR Executive', 'd1000000-0000-0000-0000-000000000002', 'active'),
+  ('e1000000-0000-0000-0000-000000000005', 'HR Manager', 'd1000000-0000-0000-0000-000000000002', 'active'),
+  ('e1000000-0000-0000-0000-000000000006', 'Accountant', 'd1000000-0000-0000-0000-000000000003', 'active'),
+  ('e1000000-0000-0000-0000-000000000007', 'Finance Manager', 'd1000000-0000-0000-0000-000000000003', 'active'),
+  ('e1000000-0000-0000-0000-000000000008', 'Marketing Executive', 'd1000000-0000-0000-0000-000000000004', 'active'),
+  ('e1000000-0000-0000-0000-000000000009', 'Sales Executive', 'd1000000-0000-0000-0000-000000000005', 'active'),
+  ('e1000000-0000-0000-0000-000000000010', 'DevOps Engineer', 'd1000000-0000-0000-0000-000000000001', 'active')
+ON CONFLICT (id) DO NOTHING;
+
+-- Insert Employees
+INSERT INTO employees (id, employee_id, first_name, last_name, email, phone, date_of_birth, gender, address, department_id, designation_id, employment_type, joining_date, status) VALUES
+  ('a0000000-0000-0000-0000-000000000001', 'EMP001', 'Priya', 'Sharma', 'priya.sharma@kaaryasetu.com', '9876543210', '1988-03-15', 'female', 'Flat 201, Shivaji Nagar, Pune, Maharashtra 411005', 'd1000000-0000-0000-0000-000000000002', 'e1000000-0000-0000-0000-000000000005', 'full_time', '2020-01-15', 'active'),
+  ('a0000000-0000-0000-0000-000000000002', 'EMP002', 'Rahul', 'Patil', 'rahul.patil@kaaryasetu.com', '9876543211', '1995-07-22', 'male', '12 MG Road, Bengaluru, Karnataka 560001', 'd1000000-0000-0000-0000-000000000001', 'e1000000-0000-0000-0000-000000000001', 'full_time', '2022-03-01', 'active'),
+  ('a0000000-0000-0000-0000-000000000003', 'EMP003', 'Ananya', 'Desai', 'ananya.desai@kaaryasetu.com', '9876543212', '1993-11-08', 'female', '45 Civil Lines, Nagpur, Maharashtra 440001', 'd1000000-0000-0000-0000-000000000001', 'e1000000-0000-0000-0000-000000000002', 'full_time', '2021-06-15', 'active'),
+  ('a0000000-0000-0000-0000-000000000004', 'EMP004', 'Amit', 'Joshi', 'amit.joshi@kaaryasetu.com', '9876543213', '1990-02-14', 'male', '78 Sector 17, Chandigarh 160017', 'd1000000-0000-0000-0000-000000000003', 'e1000000-0000-0000-0000-000000000006', 'full_time', '2021-09-01', 'active'),
+  ('a0000000-0000-0000-0000-000000000005', 'EMP005', 'Kavya', 'Reddy', 'kavya.reddy@kaaryasetu.com', '9876543214', '1997-05-30', 'female', '33 Banjara Hills, Hyderabad, Telangana 500034', 'd1000000-0000-0000-0000-000000000004', 'e1000000-0000-0000-0000-000000000008', 'full_time', '2023-01-10', 'active'),
+  ('a0000000-0000-0000-0000-000000000006', 'EMP006', 'Ravi', 'Kumar', 'ravi.kumar@kaaryasetu.com', '9876543215', '1991-09-18', 'male', '56 Anna Nagar, Chennai, Tamil Nadu 600040', 'd1000000-0000-0000-0000-000000000001', 'e1000000-0000-0000-0000-000000000003', 'full_time', '2022-07-01', 'active'),
+  ('a0000000-0000-0000-0000-000000000007', 'EMP007', 'Sneha', 'Mehta', 'sneha.mehta@kaaryasetu.com', '9876543216', '1996-12-03', 'female', '90 Prahlad Nagar, Ahmedabad, Gujarat 380015', 'd1000000-0000-0000-0000-000000000002', 'e1000000-0000-0000-0000-000000000004', 'full_time', '2023-04-15', 'active'),
+  ('a0000000-0000-0000-0000-000000000008', 'EMP008', 'Vikram', 'Singh', 'vikram.singh@kaaryasetu.com', '9876543217', '1992-08-25', 'male', '120 Civil Lines, Jaipur, Rajasthan 302006', 'd1000000-0000-0000-0000-000000000005', 'e1000000-0000-0000-0000-000000000009', 'full_time', '2021-11-01', 'active'),
+  ('a0000000-0000-0000-0000-000000000009', 'EMP009', 'Pooja', 'Nair', 'pooja.nair@kaaryasetu.com', '9876543218', '1994-04-12', 'female', '67 Panampilly Nagar, Kochi, Kerala 682036', 'd1000000-0000-0000-0000-000000000001', 'e1000000-0000-0000-0000-000000000010', 'full_time', '2022-10-01', 'active'),
+  ('a0000000-0000-0000-0000-000000000010', 'EMP010', 'Arjun', 'Verma', 'arjun.verma@kaaryasetu.com', '9876543219', '1998-01-20', 'male', '23 Lajpat Nagar, New Delhi 110024', 'd1000000-0000-0000-0000-000000000003', 'e1000000-0000-0000-0000-000000000007', 'full_time', '2023-08-01', 'active')
+ON CONFLICT (employee_id) DO NOTHING;
+
+-- Insert Users (Password hash for Dayflow@2026: $2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TiGniPkEKlINOlgqCeRT8BajPkW6)
+INSERT INTO users (id, email, password_hash, role, employee_id, is_active) VALUES
+  ('u0000000-0000-0000-0000-000000000000', 'admin@kaaryasetu.com', '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TiGniPkEKlINOlgqCeRT8BajPkW6', 'admin', NULL, TRUE),
+  ('u0000000-0000-0000-0000-000000000001', 'priya.sharma@kaaryasetu.com', '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TiGniPkEKlINOlgqCeRT8BajPkW6', 'hr', 'a0000000-0000-0000-0000-000000000001', TRUE),
+  ('u0000000-0000-0000-0000-000000000002', 'rahul.patil@kaaryasetu.com', '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TiGniPkEKlINOlgqCeRT8BajPkW6', 'employee', 'a0000000-0000-0000-0000-000000000002', TRUE),
+  ('u0000000-0000-0000-0000-000000000003', 'ananya.desai@kaaryasetu.com', '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TiGniPkEKlINOlgqCeRT8BajPkW6', 'employee', 'a0000000-0000-0000-0000-000000000003', TRUE)
+ON CONFLICT (email) DO NOTHING;
+
+-- Insert Holidays
+INSERT INTO holidays (name, date, type, description) VALUES
+  ('Republic Day', '2026-01-26', 'national', 'National holiday celebrating the constitution of India'),
+  ('Holi', '2026-03-03', 'national', 'Festival of colours'),
+  ('Good Friday', '2026-04-03', 'national', 'Christian holiday'),
+  ('Independence Day', '2026-08-15', 'national', 'India Independence Day'),
+  ('Gandhi Jayanti', '2026-10-02', 'national', 'Birthday of Mahatma Gandhi'),
+  ('Diwali', '2026-10-19', 'national', 'Festival of lights'),
+  ('Christmas Day', '2026-12-25', 'national', 'Christian holiday');
+
+-- Insert Announcements
+INSERT INTO announcements (title, message, priority, publish_date, expiry_date) VALUES
+  ('Welcome to KaaryaSetu HRMS!', 'We are excited to launch our new HRMS platform — KaaryaSetu. This system will centralize all everyday HR activities.', 'important', CURRENT_DATE - 7, CURRENT_DATE + 30),
+  ('Q3 Performance Reviews', 'Q3 performance reviews will begin shortly. Please complete your self-assessment forms.', 'urgent', CURRENT_DATE, CURRENT_DATE + 14);
+
+-- Done!

@@ -54,7 +54,7 @@ const Sidebar = ({ isOpen, onClose }) => {
             KS
           </div>
           <div>
-            <h1 className="font-display font-700 text-white text-sm leading-tight">KaaryaSetu</h1>
+            <h1 className="font-display font-bold text-white text-sm leading-tight">KaaryaSetu</h1>
             <p className="text-[10px] text-gray-500 leading-tight">Dayflow HRMS</p>
           </div>
           <button onClick={onClose} className="ml-auto btn-icon lg:hidden">
