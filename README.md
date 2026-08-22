@@ -1632,4 +1632,4 @@ npm run dev
 
 Ensure a new developer can clone the project, configure `.env`, seed the database, and run the complete application without manually repairing missing code.
 
-Webapp Link:https://kaary-setu.netlify.app/
+Webapp Link:https://kaarya-setu.netlify.app
