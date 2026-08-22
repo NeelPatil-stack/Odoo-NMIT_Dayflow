@@ -5,7 +5,7 @@ import NotificationBell from '../components/NotificationBell';
 import {
   LayoutDashboard, Users, Clock, CalendarDays, DollarSign,
   Building2, Megaphone, BarChart3, Settings, LogOut, Menu, X,
-  Briefcase, ChevronRight, BellRing,
+  Briefcase, ChevronRight, BellRing, ShieldCheck
 } from 'lucide-react';
 
 const adminNavGroups = [
@@ -31,6 +31,7 @@ const adminNavGroups = [
   {
     title: 'System',
     items: [
+      { to: '/admin/users', label: 'User Management', icon: ShieldCheck },
       { to: '/admin/feedback', label: 'Feedback', icon: BellRing },
       { to: '/admin/reports', label: 'Reports & Analytics', icon: BarChart3 },
       { to: '/admin/settings', label: 'Settings', icon: Settings },

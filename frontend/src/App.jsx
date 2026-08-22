@@ -27,6 +27,7 @@ const Reports = lazy(() => import('./pages/admin/Reports'));
 const Feedback = lazy(() => import('./pages/admin/Feedback'));
 const Recruitment = lazy(() => import('./pages/admin/Recruitment'));
 const Settings = lazy(() => import('./pages/admin/Settings'));
+const UserManagement = lazy(() => import('./pages/admin/UserManagement'));
 
 // Employee pages
 const EmployeeDashboard = lazy(() => import('./pages/employee/Dashboard'));
@@ -86,6 +87,7 @@ function App() {
               <Route path="reports" element={<Reports />} />
               <Route path="feedback" element={<Feedback />} />
               <Route path="recruitment" element={<Recruitment />} />
+              <Route path="users" element={<UserManagement />} />
               <Route path="settings" element={<Settings />} />
             </Route>
 
