@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { Eye, EyeOff, LogIn, AlertCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -34,43 +34,43 @@ const Login = () => {
     }
   };
 
+  const handleQuickLogin = (demoEmail, demoPassword) => {
+    setEmail(demoEmail);
+    setPassword(demoPassword);
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
-        {/* Logo / Brand */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-indigo-600 shadow-sm mb-3">
-            <span className="font-bold text-white text-lg">KS</span>
+      <div className="w-full max-w-sm">
+        {/* Brand Header */}
+        <div className="text-center mb-6">
+          <div className="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-slate-900 shadow-xs mb-3">
+            <span className="font-bold text-white text-sm">KS</span>
           </div>
-          <h1 className="font-bold text-2xl text-slate-900 mb-1">
-            KaaryaSetu
+          <h1 className="font-bold text-xl text-slate-900 tracking-tight">
+            Sign in to KaaryaSetu
           </h1>
-          <p className="text-slate-500 text-sm">Dayflow HRMS — Every workday, perfectly aligned.</p>
+          <p className="text-slate-500 text-xs mt-1">Dayflow Human Resource Management System</p>
         </div>
 
-        {/* Card */}
-        <div className="bg-white border border-slate-200 p-8 rounded-2xl shadow-sm">
-          <div className="mb-6">
-            <h2 className="text-lg font-bold text-slate-900">Sign in to your account</h2>
-            <p className="text-slate-500 text-sm mt-0.5">Enter your email and password to access the portal</p>
-          </div>
-
+        {/* Main Card */}
+        <div className="bg-white border border-slate-200/80 p-6 rounded-2xl shadow-sm">
           {error && (
-            <div className="flex items-start gap-2.5 bg-rose-50 border border-rose-200 text-rose-700 rounded-lg px-4 py-3 mb-5 text-sm">
-              <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+            <div className="flex items-start gap-2.5 bg-rose-50 border border-rose-200 text-rose-700 rounded-lg px-3.5 py-2.5 mb-4 text-xs font-medium">
+              <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0 text-rose-500" />
               <span>{error}</span>
             </div>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="form-label">Email Address</label>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">Work Email</label>
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@kaaryasetu.com"
-                className="input"
+                placeholder="name@company.com"
+                className="input text-xs"
                 autoComplete="email"
                 disabled={loading}
               />
@@ -78,18 +78,15 @@ const Login = () => {
 
             <div>
               <div className="flex items-center justify-between mb-1">
-                <label className="form-label mb-0">Password</label>
-                <Link to="/forgot-password" className="text-xs text-indigo-600 hover:text-indigo-700 font-medium">
-                  Forgot password?
-                </Link>
+                <label className="block text-xs font-semibold text-slate-700">Password</label>
               </div>
               <div className="relative">
                 <input
                   type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Enter your password"
-                  className="input pr-10"
+                  placeholder="••••••••"
+                  className="input text-xs pr-9"
                   autoComplete="current-password"
                   disabled={loading}
                 />
@@ -98,7 +95,7 @@ const Login = () => {
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
                 >
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  {showPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                 </button>
               </div>
             </div>
@@ -106,48 +103,53 @@ const Login = () => {
             <button
               type="submit"
               disabled={loading}
-              className="btn-primary w-full py-2.5 mt-2"
+              className="w-full bg-slate-900 hover:bg-slate-800 text-white font-medium text-xs py-2.5 rounded-lg transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-xs"
             >
               {loading ? (
                 <>
-                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                   Signing in...
                 </>
               ) : (
                 <>
-                  <LogIn className="w-4 h-4" />
+                  <LogIn className="w-3.5 h-3.5" />
                   Sign In
                 </>
               )}
             </button>
           </form>
 
-          {/* Demo Credentials */}
-          <div className="mt-6 p-4 bg-slate-50 rounded-xl border border-slate-200">
-            <p className="text-xs text-slate-500 font-semibold uppercase tracking-wider mb-2">Demo Credentials</p>
-            <div className="space-y-1.5 text-xs">
-              <div className="flex items-center justify-between">
-                <span className="text-slate-600">Admin</span>
-                <span className="text-slate-900 font-mono font-medium">admin@kaaryasetu.com</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-slate-600">HR Manager</span>
-                <span className="text-slate-900 font-mono font-medium">priya.sharma@kaaryasetu.com</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-slate-600">Employee</span>
-                <span className="text-slate-900 font-mono font-medium">rahul.patil@kaaryasetu.com</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-slate-600">Password</span>
-                <span className="text-slate-900 font-mono font-medium">Dayflow@2026</span>
-              </div>
+          {/* Quick Demo Selector */}
+          <div className="mt-5 pt-4 border-t border-slate-100 space-y-2">
+            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider text-center">Quick Demo Login</p>
+            <div className="grid grid-cols-3 gap-1.5 text-xs">
+              <button
+                type="button"
+                onClick={() => handleQuickLogin('admin@kaaryasetu.com', 'Dayflow@2026')}
+                className="py-1.5 px-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-md font-medium text-slate-700 text-center transition-colors"
+              >
+                Admin
+              </button>
+              <button
+                type="button"
+                onClick={() => handleQuickLogin('priya.sharma@kaaryasetu.com', 'Dayflow@2026')}
+                className="py-1.5 px-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-md font-medium text-slate-700 text-center transition-colors"
+              >
+                HR
+              </button>
+              <button
+                type="button"
+                onClick={() => handleQuickLogin('rahul.patil@kaaryasetu.com', 'Dayflow@2026')}
+                className="py-1.5 px-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-md font-medium text-slate-700 text-center transition-colors"
+              >
+                Employee
+              </button>
             </div>
           </div>
         </div>
 
-        <p className="text-center text-slate-400 text-xs mt-6">
-          © 2026 KaaryaSetu Technologies. All rights reserved.
+        <p className="text-center text-slate-400 text-[11px] mt-6">
+          KaaryaSetu HR Management Platform
         </p>
       </div>
     </div>

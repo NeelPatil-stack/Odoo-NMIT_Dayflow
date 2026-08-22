@@ -32,17 +32,17 @@ function daysUntil(d) {
 /* ── Mini Stat Card ── */
 function MiniStat({ label, value, sub, icon: Icon, color = 'primary', loading }) {
   const colorMap = {
-    primary: { bg: 'bg-primary-600/10', text: 'text-primary-400', border: 'border-primary-500/20' },
-    success: { bg: 'bg-success-500/10', text: 'text-success-500', border: 'border-success-500/20' },
-    danger:  { bg: 'bg-danger-500/10',  text: 'text-danger-500',  border: 'border-danger-500/20'  },
-    warning: { bg: 'bg-warning-500/10', text: 'text-warning-500', border: 'border-warning-500/20' },
-    accent:  { bg: 'bg-accent-500/10',  text: 'text-accent-400',  border: 'border-accent-500/20'  },
+    primary: { bg: 'bg-indigo-50', text: 'text-indigo-600', border: 'border-slate-200' },
+    success: { bg: 'bg-emerald-50', text: 'text-emerald-600', border: 'border-slate-200' },
+    danger:  { bg: 'bg-rose-50', text: 'text-rose-600', border: 'border-slate-200' },
+    warning: { bg: 'bg-amber-50', text: 'text-amber-600', border: 'border-slate-200' },
+    accent:  { bg: 'bg-sky-50', text: 'text-sky-600', border: 'border-slate-200' },
   };
   const c = colorMap[color] ?? colorMap.primary;
 
   if (loading) {
     return (
-      <div className="stat-card space-y-3">
+      <div className="bg-white border border-slate-200 rounded-xl p-4 space-y-3 shadow-xs">
         <div className="skeleton h-3 w-20 rounded" />
         <div className="skeleton h-8 w-16 rounded" />
         <div className="skeleton h-2.5 w-28 rounded opacity-60" />
@@ -51,15 +51,15 @@ function MiniStat({ label, value, sub, icon: Icon, color = 'primary', loading })
   }
 
   return (
-    <div className={`stat-card border ${c.border}`}>
+    <div className={`bg-white border border-slate-200 rounded-xl p-4 shadow-xs transition-all hover:border-slate-300`}>
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
-          <p className="text-xs font-medium text-gray-400 uppercase tracking-wide">{label}</p>
-          <p className="text-2xl font-display font-bold text-white mt-1.5 truncate">{value ?? '–'}</p>
-          {sub && <p className="text-[11px] text-gray-500 mt-0.5 truncate">{sub}</p>}
+          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">{label}</p>
+          <p className="text-xl font-bold text-slate-900 mt-1 truncate">{value ?? '–'}</p>
+          {sub && <p className="text-[11px] text-slate-500 mt-0.5 truncate">{sub}</p>}
         </div>
-        <div className={`w-9 h-9 rounded-xl ${c.bg} flex items-center justify-center shrink-0`}>
-          <Icon size={18} className={c.text} />
+        <div className={`w-8 h-8 rounded-lg ${c.bg} flex items-center justify-center shrink-0`}>
+          <Icon size={16} className={c.text} />
         </div>
       </div>
     </div>
@@ -280,24 +280,23 @@ function EmployeeDashboard() {
   const firstName = user?.firstName ?? user?.name?.split(' ')?.[0] ?? 'there';
 
   return (
-    <div className="p-6 space-y-6 max-w-screen-xl mx-auto">
+    <div className="space-y-6">
       {/* ── Header ── */}
-      <div className="page-header">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-5">
         <div className="flex items-center gap-4">
-          <div className="avatar avatar-lg avatar-gradient shrink-0">
+          <div className="w-10 h-10 rounded-full bg-slate-900 text-white font-bold text-sm flex items-center justify-center shrink-0">
             {(firstName?.[0] ?? '?').toUpperCase()}
           </div>
           <div>
-            <p className="text-sm text-gray-500 font-medium">{greeting} 👋</p>
-            <h1 className="text-2xl font-display font-bold text-white">
-              {firstName}{' '}
-              <span className="text-gradient">{user?.lastName ?? ''}</span>
+            <p className="text-xs font-semibold text-slate-500">{greeting} 👋</p>
+            <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
+              {firstName} {user?.lastName ?? ''}
             </h1>
-            <p className="page-subtitle">{user?.designation ?? user?.role ?? 'Employee'} · {user?.department?.name ?? user?.department ?? ''}</p>
+            <p className="text-xs text-slate-500 mt-0.5">{user?.designation ?? user?.role ?? 'Employee'} · {user?.department?.name ?? user?.department ?? ''}</p>
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <p className="text-sm text-gray-400 hidden md:block">
+          <p className="text-xs text-slate-500 font-medium hidden md:block">
             {new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' })}
           </p>
           <button
@@ -323,10 +322,10 @@ function EmployeeDashboard() {
       )}
 
       {/* ── Quick Action Buttons ── */}
-      <div className="glass p-5">
-        <div className="flex items-center gap-2 mb-4">
-          <TrendingUp size={16} className="text-primary-400" />
-          <h2 className="text-base font-semibold text-white">Quick Actions</h2>
+      <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-xs space-y-4">
+        <div className="flex items-center gap-2 border-b border-slate-100 pb-2">
+          <TrendingUp size={15} className="text-indigo-600" />
+          <h2 className="text-xs font-bold uppercase tracking-wider text-slate-600">Quick Actions</h2>
         </div>
         <div className="flex flex-wrap gap-3">
           {ACTIONS.map(({ label, icon: Icon, color, disabled, loading: ld, onClick }) => (
@@ -336,7 +335,7 @@ function EmployeeDashboard() {
               disabled={disabled || ld}
               className={`${color} ${disabled ? 'opacity-50' : ''}`}
             >
-              {ld ? <Loader2 size={15} className="animate-spin" /> : <Icon size={15} />}
+              {ld ? <Loader2 size={14} className="animate-spin" /> : <Icon size={14} />}
               {label}
             </button>
           ))}
@@ -344,19 +343,19 @@ function EmployeeDashboard() {
 
         {/* Today's status indicator */}
         {!loading && (
-          <div className={`mt-4 flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm ${
+          <div className={`mt-4 flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-medium border ${
             isCheckedOut
-              ? 'bg-success-500/10 border border-success-500/20 text-success-500'
+              ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
               : isCheckedIn
-              ? 'bg-accent-500/10 border border-accent-500/20 text-accent-400'
-              : 'bg-warning-500/10 border border-warning-500/20 text-warning-500'
+              ? 'bg-sky-50 border-sky-200 text-sky-700'
+              : 'bg-amber-50 border-amber-200 text-amber-700'
           }`}>
             {isCheckedOut ? (
-              <><CheckCircle2 size={16} /> Today's session complete — {workingHours} worked</>
+              <><CheckCircle2 size={15} /> Today's session complete — {workingHours} worked</>
             ) : isCheckedIn ? (
-              <><Clock size={16} className="animate-pulse" /> Currently clocked in — {workingHours} elapsed</>
+              <><Clock size={15} className="animate-pulse" /> Currently clocked in — {workingHours} elapsed</>
             ) : (
-              <><XCircle size={16} /> You haven't checked in today yet</>
+              <><XCircle size={15} /> You haven't checked in today yet</>
             )}
           </div>
         )}
@@ -365,24 +364,24 @@ function EmployeeDashboard() {
       {/* ── Bottom Row ── */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
         {/* Upcoming Holidays */}
-        <div className="glass overflow-hidden">
-          <div className="flex items-center justify-between px-5 py-4 border-b border-white/[0.06]">
+        <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-xs">
+          <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
             <div className="flex items-center gap-2">
-              <Sun size={16} className="text-warning-500" />
-              <h2 className="text-base font-semibold text-white">Upcoming Holidays</h2>
+              <Sun size={16} className="text-amber-500" />
+              <h2 className="text-sm font-bold text-slate-900">Upcoming Holidays</h2>
             </div>
             <button
               onClick={() => navigate('/employee/holidays')}
-              className="btn-ghost btn-sm"
+              className="btn-ghost btn-sm text-indigo-600"
             >
-              All <ChevronRight size={13} />
+              View calendar <ChevronRight size={13} />
             </button>
           </div>
           {loading ? (
             <div className="p-4 space-y-3">
               {[1, 2, 3].map((i) => (
                 <div key={i} className="flex gap-3">
-                  <div className="skeleton w-10 h-10 rounded-xl" />
+                  <div className="skeleton w-9 h-9 rounded-lg" />
                   <div className="flex-1 space-y-2">
                     <div className="skeleton h-3 w-3/4 rounded" />
                     <div className="skeleton h-2.5 w-1/2 rounded opacity-60" />
@@ -393,20 +392,20 @@ function EmployeeDashboard() {
           ) : holidays.length === 0 ? (
             <EmptyState icon={CalendarDays} title="No upcoming holidays" description="No holidays scheduled in the near future." className="py-10" />
           ) : (
-            <div className="divide-y divide-white/[0.04]">
+            <div className="divide-y divide-slate-100">
               {holidays.map((h) => (
-                <div key={h._id} className="flex items-center gap-3 px-5 py-3.5">
-                  <div className="w-10 h-10 rounded-xl bg-warning-500/10 flex flex-col items-center justify-center shrink-0">
-                    <span className="text-warning-500 font-bold text-sm leading-none">
+                <div key={h._id || h.id} className="flex items-center gap-3 px-5 py-3.5">
+                  <div className="w-9 h-9 rounded-lg bg-amber-50 border border-amber-100 flex flex-col items-center justify-center shrink-0">
+                    <span className="text-amber-700 font-bold text-xs leading-none">
                       {new Date(h.date).getDate()}
                     </span>
-                    <span className="text-warning-500/70 text-[9px] uppercase tracking-wide">
+                    <span className="text-amber-600 text-[8px] uppercase font-bold tracking-wider">
                       {new Date(h.date).toLocaleString('en-IN', { month: 'short' })}
                     </span>
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-200 truncate">{h.name}</p>
-                    <p className="text-[11px] text-gray-500">{h.type ?? 'Public Holiday'}</p>
+                    <p className="text-xs font-semibold text-slate-800 truncate">{h.name}</p>
+                    <p className="text-[10px] text-slate-400">{h.type ?? 'Public Holiday'}</p>
                   </div>
                   <span className="badge-warning shrink-0">{daysUntil(h.date)}</span>
                 </div>
@@ -416,36 +415,35 @@ function EmployeeDashboard() {
         </div>
 
         {/* Announcements */}
-        <div className="glass overflow-hidden">
-          <div className="flex items-center justify-between px-5 py-4 border-b border-white/[0.06]">
+        <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-xs">
+          <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
             <div className="flex items-center gap-2">
-              <Megaphone size={16} className="text-accent-400" />
-              <h2 className="text-base font-semibold text-white">Announcements</h2>
+              <Megaphone size={16} className="text-indigo-600" />
+              <h2 className="text-sm font-bold text-slate-900">Announcements</h2>
             </div>
             <button
               onClick={() => navigate('/employee/announcements')}
-              className="btn-ghost btn-sm"
+              className="btn-ghost btn-sm text-indigo-600"
             >
-              All <ChevronRight size={13} />
+              View all <ChevronRight size={13} />
             </button>
           </div>
           {loading ? (
             <div className="p-4 space-y-3">
               {[1, 2, 3].map((i) => (
-                <div key={i} className="space-y-2 p-3 rounded-xl bg-white/[0.02]">
+                <div key={i} className="space-y-2 p-3 rounded-lg bg-slate-50">
                   <div className="skeleton h-3 w-3/4 rounded" />
                   <div className="skeleton h-2.5 w-full rounded opacity-60" />
-                  <div className="skeleton h-2.5 w-2/3 rounded opacity-40" />
                 </div>
               ))}
             </div>
           ) : announcements.length === 0 ? (
             <EmptyState icon={Megaphone} title="No announcements" description="Nothing new to announce right now." className="py-10" />
           ) : (
-            <div className="divide-y divide-white/[0.04]">
+            <div className="divide-y divide-slate-100">
               {announcements.map((a) => (
-                <div key={a._id} className="px-5 py-4">
-                  <div className="flex items-start gap-2 mb-1">
+                <div key={a._id || a.id} className="px-5 py-4 space-y-1">
+                  <div className="flex items-center gap-2">
                     <span
                       className={
                         a.priority === 'high'
@@ -459,13 +457,13 @@ function EmployeeDashboard() {
                     </span>
                     {a.isNew && <span className="badge-primary">New</span>}
                   </div>
-                  <p className="text-sm font-semibold text-gray-100 mb-0.5 line-clamp-1">
+                  <p className="text-xs font-semibold text-slate-900">
                     {a.title}
                   </p>
-                  <p className="text-xs text-gray-400 line-clamp-2 leading-relaxed">
+                  <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed">
                     {a.content ?? a.message ?? a.description}
                   </p>
-                  <p className="text-[11px] text-gray-600 mt-1.5">
+                  <p className="text-[10px] text-slate-400 pt-1">
                     {fmtDate(a.createdAt)}
                     {a.author && ` · ${a.author}`}
                   </p>
