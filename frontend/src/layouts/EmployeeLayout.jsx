@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import NotificationBell from '../components/NotificationBell';
+import FloatingChatbotWidget from '../components/FloatingChatbotWidget';
 import {
   LayoutDashboard, Clock, CalendarDays, DollarSign,
   User, Users, LogOut, Menu, X, ChevronRight, MessageSquareHeart,
@@ -145,6 +146,7 @@ const EmployeeLayout = () => {
           <Outlet />
         </div>
       </main>
+      <FloatingChatbotWidget />
     </div>
   );
 };
