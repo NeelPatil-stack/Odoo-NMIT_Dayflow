@@ -1,8 +1,4 @@
 -- ============================================================
--- KaaryaSetu / Dayflow HRMS — Complete Supabase PostgreSQL Schema & Seed Data
--- Paste and execute this entire file in your Supabase SQL Editor
-
--- ============================================================
 -- KaaryaSetu / Dayflow HRMS — 200+ Original Employee Records
 -- Run this script in your Supabase SQL Editor
 -- ============================================================
