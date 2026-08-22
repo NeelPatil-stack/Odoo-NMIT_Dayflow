@@ -35,33 +35,28 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen bg-dark-950 flex items-center justify-center p-4 relative overflow-hidden">
-      {/* Background decorations */}
-      <div className="absolute top-0 left-1/4 w-96 h-96 bg-primary-600/10 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute bottom-0 right-1/4 w-80 h-80 bg-accent-500/8 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute top-1/2 left-0 w-64 h-64 bg-primary-800/8 rounded-full blur-3xl pointer-events-none" />
-
-      <div className="w-full max-w-md relative z-10">
+    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+      <div className="w-full max-w-md">
         {/* Logo / Brand */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-primary-500 to-accent-500 shadow-glow-primary mb-4">
-            <span className="font-display font-bold text-white text-xl">KS</span>
+          <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-indigo-600 shadow-sm mb-3">
+            <span className="font-bold text-white text-lg">KS</span>
           </div>
-          <h1 className="font-display font-bold text-3xl text-white mb-1">
-            <span className="text-gradient">KaaryaSetu</span>
+          <h1 className="font-bold text-2xl text-slate-900 mb-1">
+            KaaryaSetu
           </h1>
-          <p className="text-gray-400 text-sm">Dayflow HRMS — Every workday, perfectly aligned.</p>
+          <p className="text-slate-500 text-sm">Dayflow HRMS — Every workday, perfectly aligned.</p>
         </div>
 
         {/* Card */}
-        <div className="glass p-8 shadow-card">
+        <div className="bg-white border border-slate-200 p-8 rounded-2xl shadow-sm">
           <div className="mb-6">
-            <h2 className="text-xl font-display font-600 text-white">Welcome back</h2>
-            <p className="text-gray-400 text-sm mt-1">Sign in to your account to continue</p>
+            <h2 className="text-lg font-bold text-slate-900">Sign in to your account</h2>
+            <p className="text-slate-500 text-sm mt-0.5">Enter your email and password to access the portal</p>
           </div>
 
           {error && (
-            <div className="flex items-start gap-2.5 bg-danger-700/15 border border-danger-700/30 text-danger-400 rounded-xl px-4 py-3 mb-5 text-sm animate-fade-in">
+            <div className="flex items-start gap-2.5 bg-rose-50 border border-rose-200 text-rose-700 rounded-lg px-4 py-3 mb-5 text-sm">
               <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
               <span>{error}</span>
             </div>
@@ -75,16 +70,16 @@ const Login = () => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@kaaryasetu.com"
-                className="form-input"
+                className="input"
                 autoComplete="email"
                 disabled={loading}
               />
             </div>
 
             <div>
-              <div className="flex items-center justify-between mb-1.5">
+              <div className="flex items-center justify-between mb-1">
                 <label className="form-label mb-0">Password</label>
-                <Link to="/forgot-password" className="text-xs text-primary-400 hover:text-primary-300 transition-colors">
+                <Link to="/forgot-password" className="text-xs text-indigo-600 hover:text-indigo-700 font-medium">
                   Forgot password?
                 </Link>
               </div>
@@ -94,14 +89,14 @@ const Login = () => {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Enter your password"
-                  className="form-input pr-10"
+                  className="input pr-10"
                   autoComplete="current-password"
                   disabled={loading}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 transition-colors"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
                 >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
@@ -111,7 +106,7 @@ const Login = () => {
             <button
               type="submit"
               disabled={loading}
-              className="btn-primary w-full btn-lg mt-2"
+              className="btn-primary w-full py-2.5 mt-2"
             >
               {loading ? (
                 <>
@@ -128,30 +123,30 @@ const Login = () => {
           </form>
 
           {/* Demo Credentials */}
-          <div className="mt-6 p-4 bg-dark-900/60 rounded-xl border border-white/[0.06]">
-            <p className="text-xs text-gray-500 font-medium uppercase tracking-wide mb-2">Demo Credentials</p>
+          <div className="mt-6 p-4 bg-slate-50 rounded-xl border border-slate-200">
+            <p className="text-xs text-slate-500 font-semibold uppercase tracking-wider mb-2">Demo Credentials</p>
             <div className="space-y-1.5 text-xs">
               <div className="flex items-center justify-between">
-                <span className="text-gray-400">Admin</span>
-                <span className="text-gray-300 font-mono">admin@kaaryasetu.com</span>
+                <span className="text-slate-600">Admin</span>
+                <span className="text-slate-900 font-mono font-medium">admin@kaaryasetu.com</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-gray-400">HR</span>
-                <span className="text-gray-300 font-mono">priya.sharma@kaaryasetu.com</span>
+                <span className="text-slate-600">HR Manager</span>
+                <span className="text-slate-900 font-mono font-medium">priya.sharma@kaaryasetu.com</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-gray-400">Employee</span>
-                <span className="text-gray-300 font-mono">rahul.patil@kaaryasetu.com</span>
+                <span className="text-slate-600">Employee</span>
+                <span className="text-slate-900 font-mono font-medium">rahul.patil@kaaryasetu.com</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-gray-400">Password</span>
-                <span className="text-gray-300 font-mono">Dayflow@2026</span>
+                <span className="text-slate-600">Password</span>
+                <span className="text-slate-900 font-mono font-medium">Dayflow@2026</span>
               </div>
             </div>
           </div>
         </div>
 
-        <p className="text-center text-gray-600 text-xs mt-6">
+        <p className="text-center text-slate-400 text-xs mt-6">
           © 2026 KaaryaSetu Technologies. All rights reserved.
         </p>
       </div>

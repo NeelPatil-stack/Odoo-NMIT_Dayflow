@@ -1,6 +1,5 @@
 import { useState } from 'react';
-import { Outlet } from 'react-router-dom';
-import { NavLink, useNavigate, useLocation } from 'react-router-dom';
+import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import NotificationBell from '../components/NotificationBell';
 import {
@@ -30,24 +29,24 @@ const Sidebar = ({ isOpen, onClose }) => {
   return (
     <>
       {isOpen && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 lg:hidden" onClick={onClose} />
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-40 lg:hidden" onClick={onClose} />
       )}
 
       <aside className={`
         fixed top-0 left-0 h-full z-50 flex flex-col
-        bg-dark-900/95 backdrop-blur-xl border-r border-white/[0.06]
-        transition-transform duration-300 ease-in-out
+        bg-white border-r border-slate-200/80 shadow-sm
+        transition-transform duration-200 ease-in-out
         w-[260px]
         ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
       `}>
         {/* Logo */}
-        <div className="flex items-center gap-3 px-5 py-5 border-b border-white/[0.06]">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary-500 to-accent-500 flex items-center justify-center text-white font-display font-bold text-sm shadow-glow-primary">
+        <div className="flex items-center gap-3 px-5 py-4 border-b border-slate-100">
+          <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center text-white font-bold text-xs shadow-sm">
             KS
           </div>
           <div>
-            <h1 className="font-display font-bold text-white text-sm leading-tight">KaaryaSetu</h1>
-            <p className="text-[10px] text-gray-500 leading-tight">Dayflow HRMS</p>
+            <h1 className="font-bold text-slate-900 text-sm leading-tight">KaaryaSetu</h1>
+            <p className="text-[11px] text-slate-400 leading-tight">Dayflow HRMS</p>
           </div>
           <button onClick={onClose} className="ml-auto btn-icon lg:hidden">
             <X className="w-4 h-4" />
@@ -55,8 +54,8 @@ const Sidebar = ({ isOpen, onClose }) => {
         </div>
 
         {/* User Info */}
-        <div className="px-4 py-4 border-b border-white/[0.06]">
-          <div className="flex items-center gap-3 p-2.5 rounded-xl bg-dark-800/60">
+        <div className="px-4 py-3 border-b border-slate-100">
+          <div className="flex items-center gap-3 p-2 rounded-lg bg-slate-50">
             <div className="avatar avatar-sm avatar-gradient flex-shrink-0">
               {user?.profilePicture ? (
                 <img src={user.profilePicture} alt="" className="w-full h-full object-cover" />
@@ -65,14 +64,14 @@ const Sidebar = ({ isOpen, onClose }) => {
               )}
             </div>
             <div className="min-w-0">
-              <p className="text-sm font-medium text-white truncate">{user?.firstName} {user?.lastName}</p>
+              <p className="text-xs font-semibold text-slate-800 truncate">{user?.firstName} {user?.lastName}</p>
               <span className="badge badge-info text-[10px] py-0.5">Employee</span>
             </div>
           </div>
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 px-3 py-3 overflow-y-auto no-scrollbar space-y-0.5">
+        <nav className="flex-1 px-3 py-3 overflow-y-auto no-scrollbar space-y-1">
           {employeeNavItems.map((item) => (
             <NavLink
               key={item.to}
@@ -80,14 +79,14 @@ const Sidebar = ({ isOpen, onClose }) => {
               onClick={onClose}
               className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}
             >
-              <item.icon className="sidebar-icon w-4.5 h-4.5 flex-shrink-0" />
+              <item.icon className="sidebar-icon w-4 h-4 flex-shrink-0" />
               <span>{item.label}</span>
             </NavLink>
           ))}
         </nav>
 
-        <div className="p-3 border-t border-white/[0.06]">
-          <button onClick={handleLogout} className="sidebar-link w-full text-danger-400 hover:text-danger-300 hover:bg-danger-900/20">
+        <div className="p-3 border-t border-slate-100">
+          <button onClick={handleLogout} className="sidebar-link w-full text-rose-600 hover:text-rose-700 hover:bg-rose-50">
             <LogOut className="w-4 h-4 flex-shrink-0" />
             <span>Sign Out</span>
           </button>
@@ -106,18 +105,18 @@ const TopNav = ({ onMenuClick }) => {
   );
 
   return (
-    <header className="fixed top-0 right-0 left-0 lg:left-[260px] h-16 z-30 bg-dark-900/80 backdrop-blur-xl border-b border-white/[0.06] flex items-center px-4 gap-4">
+    <header className="fixed top-0 right-0 left-0 lg:left-[260px] h-16 z-30 bg-white/90 backdrop-blur-md border-b border-slate-200/80 flex items-center px-6 gap-4">
       <button onClick={onMenuClick} className="btn-icon lg:hidden">
         <Menu className="w-5 h-5" />
       </button>
 
       <div className="flex items-center gap-2 text-sm">
-        <span className="text-gray-500">{user?.firstName}</span>
-        <ChevronRight className="w-3 h-3 text-gray-600" />
-        <span className="text-gray-200 font-medium">{currentPage?.label || 'Dashboard'}</span>
+        <span className="text-slate-400 font-medium">{user?.firstName}</span>
+        <ChevronRight className="w-3.5 h-3.5 text-slate-300" />
+        <span className="text-slate-800 font-semibold">{currentPage?.label || 'Dashboard'}</span>
       </div>
 
-      <div className="ml-auto flex items-center gap-2">
+      <div className="ml-auto flex items-center gap-3">
         <NotificationBell />
         <div className="avatar avatar-sm avatar-gradient">
           {user?.profilePicture ? (
@@ -135,11 +134,11 @@ const EmployeeLayout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
-    <div className="min-h-screen bg-dark-950">
+    <div className="min-h-screen bg-slate-50">
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <TopNav onMenuClick={() => setSidebarOpen(true)} />
       <main className="lg:ml-[260px] pt-16 min-h-screen">
-        <div className="p-4 sm:p-6 max-w-7xl mx-auto animate-fade-in">
+        <div className="p-6 max-w-7xl mx-auto">
           <Outlet />
         </div>
       </main>

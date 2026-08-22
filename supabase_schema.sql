@@ -357,10 +357,10 @@ ON CONFLICT (employee_id) DO NOTHING;
 
 -- Insert Users (Password hash for Dayflow@2026: $2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TiGniPkEKlINOlgqCeRT8BajPkW6)
 INSERT INTO users (id, email, password_hash, role, employee_id, is_active) VALUES
-  ('u0000000-0000-0000-0000-000000000000', 'admin@kaaryasetu.com', '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TiGniPkEKlINOlgqCeRT8BajPkW6', 'admin', NULL, TRUE),
-  ('u0000000-0000-0000-0000-000000000001', 'priya.sharma@kaaryasetu.com', '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TiGniPkEKlINOlgqCeRT8BajPkW6', 'hr', 'a0000000-0000-0000-0000-000000000001', TRUE),
-  ('u0000000-0000-0000-0000-000000000002', 'rahul.patil@kaaryasetu.com', '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TiGniPkEKlINOlgqCeRT8BajPkW6', 'employee', 'a0000000-0000-0000-0000-000000000002', TRUE),
-  ('u0000000-0000-0000-0000-000000000003', 'ananya.desai@kaaryasetu.com', '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TiGniPkEKlINOlgqCeRT8BajPkW6', 'employee', 'a0000000-0000-0000-0000-000000000003', TRUE)
+  ('b0000000-0000-0000-0000-000000000000', 'admin@kaaryasetu.com', '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TiGniPkEKlINOlgqCeRT8BajPkW6', 'admin', NULL, TRUE),
+  ('b0000000-0000-0000-0000-000000000001', 'priya.sharma@kaaryasetu.com', '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TiGniPkEKlINOlgqCeRT8BajPkW6', 'hr', 'a0000000-0000-0000-0000-000000000001', TRUE),
+  ('b0000000-0000-0000-0000-000000000002', 'rahul.patil@kaaryasetu.com', '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TiGniPkEKlINOlgqCeRT8BajPkW6', 'employee', 'a0000000-0000-0000-0000-000000000002', TRUE),
+  ('b0000000-0000-0000-0000-000000000003', 'ananya.desai@kaaryasetu.com', '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TiGniPkEKlINOlgqCeRT8BajPkW6', 'employee', 'a0000000-0000-0000-0000-000000000003', TRUE)
 ON CONFLICT (email) DO NOTHING;
 
 -- Insert Holidays
