@@ -1,94 +1,69 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Plus, Search, Filter, Eye, Edit2, UserX, UserCheck,
-  ChevronLeft, ChevronRight, X, Users, Loader2
+  Plus, Search, Eye, ChevronLeft, ChevronRight, X, Users, Loader2
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../../services/api';
-
-const GENDER_OPTIONS = ['Male', 'Female', 'Other'];
-const EMPLOYMENT_TYPES = ['full-time', 'part-time', 'contract', 'intern'];
 
 function getInitials(first, last) {
   return `${(first || '')[0] || ''}${(last || '')[0] || ''}`.toUpperCase();
 }
 
 function StatusBadge({ status }) {
-  const map = {
-    active: 'badge-success',
-    inactive: 'badge-danger',
-    on_leave: 'badge-warning',
-  };
-  return <span className={map[status] || 'badge-gray'}>{status?.replace('_', ' ')}</span>;
+  const s = String(status || '').toLowerCase();
+  if (s === 'active') return <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">Active</span>;
+  if (s === 'inactive' || s === 'terminated') return <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-rose-50 text-rose-700 border border-rose-200">Inactive</span>;
+  if (s === 'on_leave') return <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-amber-50 text-amber-700 border border-amber-200">On Leave</span>;
+  return <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-700 border border-slate-200">{s}</span>;
 }
 
 const defaultForm = {
   firstName: '', lastName: '', email: '', phone: '',
-  dateOfBirth: '', gender: '', address: '',
+  dateOfBirth: '', gender: 'Male', address: '',
   departmentId: '', designationId: '',
-  employmentType: 'full-time', joiningDate: '',
+  employmentType: 'full_time', joiningDate: '',
 };
 
 export default function Employees() {
   const navigate = useNavigate();
   const [employees, setEmployees] = useState([]);
-  const [departments, setDepartments] = useState([]);
-  const [designations, setDesignations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [debouncedSearch, setDebouncedSearch] = useState('');
-  const [filterDept, setFilterDept] = useState('');
-  const [filterStatus, setFilterStatus] = useState('');
   const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [total, setTotal] = useState(0);
-  const LIMIT = 10;
-
   const [showAddModal, setShowAddModal] = useState(false);
   const [form, setForm] = useState(defaultForm);
   const [formLoading, setFormLoading] = useState(false);
-  const [showStatusModal, setShowStatusModal] = useState(false);
-  const [statusTarget, setStatusTarget] = useState(null);
-  const [statusLoading, setStatusLoading] = useState(false);
-
-  useEffect(() => {
-    const t = setTimeout(() => setDebouncedSearch(search), 400);
-    return () => clearTimeout(t);
-  }, [search]);
+  const LIMIT = 10;
 
   const fetchEmployees = useCallback(async () => {
     setLoading(true);
     try {
-      const params = { page, limit: LIMIT };
-      if (debouncedSearch) params.search = debouncedSearch;
-      if (filterDept) params.department = filterDept;
-      if (filterStatus) params.status = filterStatus;
-      const res = await api.get('/employees', { params });
-      const d = res.data?.data || res.data;
-      setEmployees(d.employees || d.data || (Array.isArray(d) ? d : []));
-      setTotal(d.total || 0);
-      setTotalPages(Math.ceil((d.total || 0) / LIMIT) || 1);
+      const res = await api.get('/employees');
+      const data = res.data?.data || res.data || [];
+      setEmployees(data);
     } catch {
       toast.error('Failed to load employees');
     } finally {
       setLoading(false);
     }
-  }, [page, debouncedSearch, filterDept, filterStatus]);
+  }, []);
 
-  const fetchMeta = async () => {
-    try {
-      const [dRes, desRes] = await Promise.all([api.get('/departments'), api.get('/designations')]);
-      setDepartments(dRes.data?.data || dRes.data || []);
-      setDesignations(desRes.data?.data || desRes.data || []);
-    } catch { /* non-fatal */ }
-  };
-
-  useEffect(() => { fetchMeta(); }, []);
   useEffect(() => { fetchEmployees(); }, [fetchEmployees]);
-  useEffect(() => { setPage(1); }, [debouncedSearch, filterDept, filterStatus]);
 
-  const handleCreate = async (e) => {
+  const filteredEmployees = employees.filter(emp => {
+    const name = `${emp.firstName || emp.first_name || ''} ${emp.lastName || emp.last_name || ''}`.toLowerCase();
+    const email = (emp.email || '').toLowerCase();
+    const empId = (emp.employeeId || emp.employee_id || '').toLowerCase();
+    const dept = (emp.department?.name || emp.department || '').toLowerCase();
+    const q = search.toLowerCase();
+    return name.includes(q) || email.includes(q) || empId.includes(q) || dept.includes(q);
+  });
+
+  const totalPages = Math.ceil(filteredEmployees.length / LIMIT) || 1;
+  const paginatedEmployees = filteredEmployees.slice((page - 1) * LIMIT, page * LIMIT);
+
+  const handleAddSubmit = async (e) => {
     e.preventDefault();
     setFormLoading(true);
     try {
@@ -104,290 +79,175 @@ export default function Employees() {
     }
   };
 
-  const handleStatusChange = async () => {
-    if (!statusTarget) return;
-    setStatusLoading(true);
-    const newStatus = statusTarget.status === 'active' ? 'inactive' : 'active';
-    try {
-      await api.patch(`/employees/${statusTarget._id}/status`, { status: newStatus });
-      toast.success(`Employee ${newStatus === 'active' ? 'reactivated' : 'deactivated'}`);
-      setShowStatusModal(false);
-      setStatusTarget(null);
-      fetchEmployees();
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to update status');
-    } finally {
-      setStatusLoading(false);
-    }
-  };
-
-  const handleFormChange = (e) => setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
-
-  const paginationItems = Array.from({ length: totalPages }, (_, i) => i + 1)
-    .filter(p => p === 1 || p === totalPages || Math.abs(p - page) <= 1)
-    .reduce((acc, p, idx, arr) => {
-      if (idx > 0 && p - arr[idx - 1] > 1) acc.push('ellipsis-' + p);
-      acc.push(p);
-      return acc;
-    }, []);
-
   return (
-    <div className="p-6 space-y-6 animate-fade-in">
+    <div className="space-y-6 max-w-7xl mx-auto">
       {/* Header */}
-      <div className="page-header">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-5">
         <div>
-          <h1 className="page-title">Employees</h1>
-          <p className="page-subtitle">{total} total employees</p>
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Employee Directory</h1>
+          <p className="text-xs font-medium text-slate-500 mt-1">Manage corporate workforce, roles, departments, and personnel details.</p>
         </div>
-        <button className="btn-primary" onClick={() => setShowAddModal(true)}>
-          <Plus size={16} /> Add Employee
+
+        <button onClick={() => setShowAddModal(true)} className="btn-primary py-2 px-4 text-xs shadow-xs">
+          <Plus size={15} className="mr-1.5" /> Add Employee
         </button>
       </div>
 
-      {/* Filters */}
-      <div className="glass p-4 flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1">
-          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
-          <input
-            className="form-input pl-9"
-            placeholder="Search by name or email…"
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-          />
-        </div>
-        <div className="flex gap-3">
-          <div className="relative">
-            <Filter size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
-            <select className="form-select pl-8 min-w-[150px]" value={filterDept} onChange={e => setFilterDept(e.target.value)}>
-              <option value="">All Departments</option>
-              {departments.map(d => <option key={d._id} value={d._id}>{d.name}</option>)}
-            </select>
+      {/* Main Table Card */}
+      <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-xs space-y-4">
+        {/* Search */}
+        <div className="flex items-center justify-between gap-4">
+          <div className="relative w-full max-w-sm">
+            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <input
+              type="text"
+              placeholder="Search by name, email, department or ID..."
+              value={search}
+              onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+              className="input pl-9 text-xs py-2"
+            />
           </div>
-          <select className="form-select min-w-[130px]" value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
-            <option value="">All Status</option>
-            <option value="active">Active</option>
-            <option value="inactive">Inactive</option>
-            <option value="on_leave">On Leave</option>
-          </select>
+          <span className="text-xs text-slate-500 font-medium">Total: {filteredEmployees.length} employees</span>
         </div>
-      </div>
 
-      {/* Table */}
-      <div className="glass overflow-hidden">
-        <div className="table-container">
-          <table className="data-table">
-            <thead>
+        {/* Table */}
+        <div className="overflow-x-auto border border-slate-100 rounded-lg">
+          <table className="w-full text-left text-xs border-collapse">
+            <thead className="bg-slate-50/80 border-b border-slate-200 text-slate-600 font-semibold uppercase tracking-wider">
               <tr>
-                <th>Employee</th>
-                <th>Employee ID</th>
-                <th>Department</th>
-                <th>Designation</th>
-                <th>Joining Date</th>
-                <th>Status</th>
-                <th>Actions</th>
+                <th className="py-3 px-4">Employee</th>
+                <th className="py-3 px-4">Emp ID</th>
+                <th className="py-3 px-4">Department</th>
+                <th className="py-3 px-4">Designation</th>
+                <th className="py-3 px-4">Joining Date</th>
+                <th className="py-3 px-4">Status</th>
+                <th className="py-3 px-4 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-slate-100 text-slate-800 font-medium">
               {loading ? (
-                Array.from({ length: 6 }).map((_, i) => (
-                  <tr key={i}>
-                    {Array.from({ length: 7 }).map((__, j) => (
-                      <td key={j}><div className="skeleton h-4 rounded" /></td>
-                    ))}
-                  </tr>
-                ))
-              ) : employees.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="text-center py-16 text-gray-500">
-                    <Users size={40} className="mx-auto mb-3 opacity-30" />
-                    No employees found
-                  </td>
+                  <td colSpan={7} className="py-12 text-center text-slate-400">Loading workforce records...</td>
+                </tr>
+              ) : paginatedEmployees.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="py-12 text-center text-slate-400">No employees found matching criteria.</td>
                 </tr>
               ) : (
-                employees.map(emp => (
-                  <tr key={emp._id}>
-                    <td>
-                      <div className="flex items-center gap-3">
-                        <div className="avatar avatar-md avatar-gradient flex-shrink-0">
-                          {getInitials(emp.firstName, emp.lastName)}
+                paginatedEmployees.map(emp => {
+                  const firstName = emp.firstName || emp.first_name || '';
+                  const lastName = emp.lastName || emp.last_name || '';
+                  const empName = emp.name || `${firstName} ${lastName}`.trim() || 'Employee';
+                  const empId = emp.employeeId || emp.employee_id || '—';
+                  const dept = emp.department?.name || emp.department || '—';
+                  const desig = emp.designation?.title || emp.designation || '—';
+                  const joinDate = emp.joiningDate || emp.joining_date ? new Date(emp.joiningDate || emp.joining_date).toLocaleDateString('en-IN') : '—';
+
+                  return (
+                    <tr key={emp._id || emp.id} className="hover:bg-slate-50/60 transition-colors">
+                      <td className="py-3 px-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-full bg-slate-900 text-white font-bold text-xs flex items-center justify-center shrink-0">
+                            {getInitials(firstName, lastName)}
+                          </div>
+                          <div>
+                            <p className="font-semibold text-slate-900 text-xs">{empName}</p>
+                            <p className="text-[10px] text-slate-400">{emp.email}</p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="font-medium text-white">{emp.firstName} {emp.lastName}</p>
-                          <p className="text-xs text-gray-500">{emp.email}</p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="font-mono text-xs text-gray-400">{emp.employeeId || '—'}</td>
-                    <td>{emp.department?.name || emp.departmentId?.name || '—'}</td>
-                    <td>{emp.designation?.title || emp.designationId?.title || '—'}</td>
-                    <td>{emp.joiningDate ? new Date(emp.joiningDate).toLocaleDateString('en-IN') : '—'}</td>
-                    <td><StatusBadge status={emp.status} /></td>
-                    <td>
-                      <div className="flex items-center gap-1">
-                        <button className="btn-icon" title="View" onClick={() => navigate(`/admin/employees/${emp._id}`)}>
-                          <Eye size={15} />
-                        </button>
-                        <button className="btn-icon" title="Edit" onClick={() => navigate(`/admin/employees/${emp._id}`)}>
-                          <Edit2 size={15} />
-                        </button>
+                      </td>
+                      <td className="py-3 px-4 font-mono text-slate-600 font-medium">{empId}</td>
+                      <td className="py-3 px-4 text-slate-700">{dept}</td>
+                      <td className="py-3 px-4 text-slate-600">{desig}</td>
+                      <td className="py-3 px-4 text-slate-500">{joinDate}</td>
+                      <td className="py-3 px-4"><StatusBadge status={emp.status} /></td>
+                      <td className="py-3 px-4 text-right">
                         <button
-                          className={`btn-icon ${emp.status === 'active' ? 'text-danger-500 hover:text-danger-400' : 'text-success-500 hover:text-success-400'}`}
-                          title={emp.status === 'active' ? 'Deactivate' : 'Reactivate'}
-                          onClick={() => { setStatusTarget(emp); setShowStatusModal(true); }}
+                          onClick={() => navigate(`/admin/employees/${emp._id || emp.id}`)}
+                          className="p-1.5 border border-slate-200 rounded-md text-slate-600 hover:bg-slate-100 transition-colors"
+                          title="View Profile"
                         >
-                          {emp.status === 'active' ? <UserX size={15} /> : <UserCheck size={15} />}
+                          <Eye size={14} />
                         </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
         </div>
-        {!loading && totalPages > 1 && (
-          <div className="flex items-center justify-between px-4 py-3 border-t border-white/[0.06]">
-            <p className="text-xs text-gray-500">
-              Showing {(page - 1) * LIMIT + 1}–{Math.min(page * LIMIT, total)} of {total}
-            </p>
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between pt-2">
+            <span className="text-xs text-slate-500">Page {page} of {totalPages}</span>
             <div className="flex items-center gap-1">
-              <button className="btn-icon" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}>
-                <ChevronLeft size={16} />
+              <button
+                disabled={page === 1}
+                onClick={() => setPage(p => p - 1)}
+                className="p-1.5 border border-slate-200 rounded-md disabled:opacity-40 text-slate-600 hover:bg-slate-50"
+              >
+                <ChevronLeft size={15} />
               </button>
-              {paginationItems.map((p) =>
-                typeof p === 'string' ? (
-                  <span key={p} className="text-gray-500 px-1">…</span>
-                ) : (
-                  <button
-                    key={p}
-                    onClick={() => setPage(p)}
-                    className={`w-8 h-8 rounded-lg text-sm font-medium transition-colors ${page === p ? 'bg-primary-600 text-white' : 'text-gray-400 hover:bg-white/5'}`}
-                  >{p}</button>
-                )
-              )}
-              <button className="btn-icon" onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}>
-                <ChevronRight size={16} />
+              <button
+                disabled={page === totalPages}
+                onClick={() => setPage(p => p + 1)}
+                className="p-1.5 border border-slate-200 rounded-md disabled:opacity-40 text-slate-600 hover:bg-slate-50"
+              >
+                <ChevronRight size={15} />
               </button>
             </div>
           </div>
         )}
       </div>
 
-      {/* Add Employee Modal */}
+      {/* Add Modal */}
       {showAddModal && (
-        <div className="modal-backdrop" onClick={() => setShowAddModal(false)}>
-          <div className="modal max-w-2xl" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between p-6 border-b border-white/[0.06]">
-              <h2 className="text-lg font-semibold text-white">Add New Employee</h2>
-              <button className="btn-icon" onClick={() => setShowAddModal(false)}><X size={18} /></button>
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white border border-slate-200 rounded-2xl p-6 w-full max-w-lg shadow-xl text-slate-900 space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h2 className="text-base font-bold text-slate-900">Add New Employee</h2>
+              <button onClick={() => setShowAddModal(false)} className="text-slate-400 hover:text-slate-600">
+                <X size={18} />
+              </button>
             </div>
-            <form onSubmit={handleCreate} className="p-6 space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+
+            <form onSubmit={handleAddSubmit} className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="form-label">First Name *</label>
-                  <input name="firstName" className="form-input" required value={form.firstName} onChange={handleFormChange} />
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">First Name</label>
+                  <input required type="text" className="input text-xs" value={form.firstName} onChange={e => setForm({...form, firstName: e.target.value})} />
                 </div>
                 <div>
-                  <label className="form-label">Last Name *</label>
-                  <input name="lastName" className="form-input" required value={form.lastName} onChange={handleFormChange} />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="form-label">Email *</label>
-                  <input name="email" type="email" className="form-input" required value={form.email} onChange={handleFormChange} />
-                </div>
-                <div>
-                  <label className="form-label">Phone</label>
-                  <input name="phone" className="form-input" value={form.phone} onChange={handleFormChange} />
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Last Name</label>
+                  <input required type="text" className="input text-xs" value={form.lastName} onChange={e => setForm({...form, lastName: e.target.value})} />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="form-label">Date of Birth</label>
-                  <input name="dateOfBirth" type="date" className="form-input" value={form.dateOfBirth} onChange={handleFormChange} />
-                </div>
-                <div>
-                  <label className="form-label">Gender</label>
-                  <select name="gender" className="form-select" value={form.gender} onChange={handleFormChange}>
-                    <option value="">Select gender</option>
-                    {GENDER_OPTIONS.map(g => <option key={g} value={g.toLowerCase()}>{g}</option>)}
-                  </select>
-                </div>
-              </div>
+
               <div>
-                <label className="form-label">Address</label>
-                <textarea name="address" className="form-input resize-none" rows={2} value={form.address} onChange={handleFormChange} />
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Work Email</label>
+                <input required type="email" className="input text-xs" value={form.email} onChange={e => setForm({...form, email: e.target.value})} />
               </div>
-              <div className="grid grid-cols-2 gap-4">
+
+              <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="form-label">Department *</label>
-                  <select name="departmentId" className="form-select" required value={form.departmentId} onChange={handleFormChange}>
-                    <option value="">Select department</option>
-                    {departments.map(d => <option key={d._id} value={d._id}>{d.name}</option>)}
-                  </select>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Phone</label>
+                  <input type="text" className="input text-xs" value={form.phone} onChange={e => setForm({...form, phone: e.target.value})} />
                 </div>
                 <div>
-                  <label className="form-label">Designation *</label>
-                  <select name="designationId" className="form-select" required value={form.designationId} onChange={handleFormChange}>
-                    <option value="">Select designation</option>
-                    {designations.map(d => <option key={d._id} value={d._id}>{d.title}</option>)}
-                  </select>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Joining Date</label>
+                  <input type="date" className="input text-xs" value={form.joiningDate} onChange={e => setForm({...form, joiningDate: e.target.value})} />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="form-label">Employment Type *</label>
-                  <select name="employmentType" className="form-select" required value={form.employmentType} onChange={handleFormChange}>
-                    {EMPLOYMENT_TYPES.map(t => <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className="form-label">Joining Date *</label>
-                  <input name="joiningDate" type="date" className="form-input" required value={form.joiningDate} onChange={handleFormChange} />
-                </div>
-              </div>
-              <div className="flex justify-end gap-3 pt-2">
-                <button type="button" className="btn-secondary" onClick={() => setShowAddModal(false)}>Cancel</button>
-                <button type="submit" className="btn-primary" disabled={formLoading}>
-                  {formLoading ? <Loader2 size={15} className="animate-spin" /> : <Plus size={15} />}
-                  Create Employee
+
+              <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
+                <button type="button" onClick={() => setShowAddModal(false)} className="btn-secondary text-xs">Cancel</button>
+                <button type="submit" disabled={formLoading} className="btn-primary text-xs">
+                  {formLoading ? <Loader2 size={14} className="animate-spin" /> : 'Create Profile'}
                 </button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
-
-      {/* Status Change Modal */}
-      {showStatusModal && statusTarget && (
-        <div className="modal-backdrop" onClick={() => setShowStatusModal(false)}>
-          <div className="modal max-w-sm" onClick={e => e.stopPropagation()}>
-            <div className="p-6">
-              <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4 ${statusTarget.status === 'active' ? 'bg-danger-500/15' : 'bg-success-500/15'}`}>
-                {statusTarget.status === 'active'
-                  ? <UserX size={24} className="text-danger-500" />
-                  : <UserCheck size={24} className="text-success-500" />}
-              </div>
-              <h3 className="text-lg font-semibold text-white text-center mb-2">
-                {statusTarget.status === 'active' ? 'Deactivate Employee' : 'Reactivate Employee'}
-              </h3>
-              <p className="text-sm text-gray-400 text-center mb-6">
-                Are you sure you want to {statusTarget.status === 'active' ? 'deactivate' : 'reactivate'}{' '}
-                <span className="text-white font-medium">{statusTarget.firstName} {statusTarget.lastName}</span>?
-              </p>
-              <div className="flex gap-3">
-                <button className="btn-secondary flex-1" onClick={() => setShowStatusModal(false)}>Cancel</button>
-                <button
-                  className={statusTarget.status === 'active' ? 'btn-danger flex-1' : 'btn-success flex-1'}
-                  onClick={handleStatusChange}
-                  disabled={statusLoading}
-                >
-                  {statusLoading ? <Loader2 size={15} className="animate-spin" /> : null}
-                  {statusTarget.status === 'active' ? 'Deactivate' : 'Reactivate'}
-                </button>
-              </div>
-            </div>
           </div>
         </div>
       )}

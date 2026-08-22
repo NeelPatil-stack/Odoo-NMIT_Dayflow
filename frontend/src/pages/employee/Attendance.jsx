@@ -1,96 +1,103 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
-  Clock, LogIn, LogOut, Calendar, RefreshCw, Edit3,
-  CheckCircle, XCircle, AlertCircle, Loader2, ChevronLeft, ChevronRight
+  Clock, LogIn, LogOut, RefreshCw,
+  CheckCircle, Loader2, ChevronLeft, ChevronRight
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Modal from '../../components/ui/Modal';
 import api from '../../services/api';
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
-const fmtTime = (iso) =>
-  iso ? new Date(iso).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }) : '—';
+const fmtTime = (iso) => {
+  if (!iso) return '—';
+  try {
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return String(iso);
+    return d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+  } catch {
+    return String(iso);
+  }
+};
 
-const fmtDate = (iso) =>
-  iso ? new Date(iso).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
+const fmtDate = (iso) => {
+  if (!iso) return '—';
+  try {
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return String(iso);
+    return d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+  } catch {
+    return String(iso);
+  }
+};
 
 const calcHours = (inTime, outTime) => {
   if (!inTime || !outTime) return '—';
-  const diff = (new Date(outTime) - new Date(inTime)) / 3600000;
-  if (diff < 0) return '—';
-  const h = Math.floor(diff);
-  const m = Math.round((diff - h) * 60);
-  return `${h}h ${m}m`;
+  try {
+    const diff = (new Date(outTime) - new Date(inTime)) / 3600000;
+    if (diff < 0 || isNaN(diff)) return '—';
+    const h = Math.floor(diff);
+    const m = Math.round((diff - h) * 60);
+    return `${h}h ${m}m`;
+  } catch {
+    return '—';
+  }
 };
 
-const STATUS_CONFIG = {
-  present:    { cls: 'badge-success', label: 'Present' },
-  absent:     { cls: 'badge-danger',  label: 'Absent' },
-  late:       { cls: 'badge-warning', label: 'Late' },
-  half_day:   { cls: 'badge-info',    label: 'Half Day' },
-  holiday:    { cls: 'badge-gray',    label: 'Holiday' },
-  weekend:    { cls: 'badge-gray',    label: 'Weekend' },
-  on_leave:   { cls: 'badge-info',    label: 'On Leave' },
-};
+function getStatusBadge(status) {
+  const s = String(status || '').toLowerCase();
+  if (s === 'present') return <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">Present</span>;
+  if (s === 'absent') return <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-rose-50 text-rose-700 border border-rose-200">Absent</span>;
+  if (s === 'late') return <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-amber-50 text-amber-700 border border-amber-200">Late</span>;
+  if (s === 'half_day') return <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-sky-50 text-sky-700 border border-sky-200">Half Day</span>;
+  return <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-700 border border-slate-200">{s || '—'}</span>;
+}
 
-const DAY_STATUS_COLOR = {
-  present:  'bg-success-500/80',
-  absent:   'bg-danger-500/80',
-  late:     'bg-warning-500/80',
-  half_day: 'bg-accent-400/80',
-  holiday:  'bg-primary-600/50',
-  weekend:  'bg-dark-700',
-  on_leave: 'bg-accent-400/40',
-};
-
-// ── Today Card ────────────────────────────────────────────────────────────────
 function TodayCard({ today, onCheckIn, onCheckOut, loading }) {
-  const status = today?.status || 'absent';
-  const conf = STATUS_CONFIG[status] || STATUS_CONFIG.absent;
+  const checkInVal = today?.checkIn || today?.check_in;
+  const checkOutVal = today?.checkOut || today?.check_out;
 
   return (
-    <div className="glass p-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-xs space-y-5">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-slate-100 pb-4">
         <div>
-          <h2 className="text-lg font-semibold text-white mb-1">Today's Status</h2>
-          <p className="text-xs text-gray-400">{new Date().toLocaleDateString('en-IN', { weekday:'long', day:'2-digit', month:'long', year:'numeric' })}</p>
+          <h2 className="text-base font-bold text-slate-900">Today's Attendance Status</h2>
+          <p className="text-xs text-slate-500 mt-0.5">{new Date().toLocaleDateString('en-IN', { weekday:'long', day:'2-digit', month:'long', year:'numeric' })}</p>
         </div>
-        <span className={conf.cls}>{conf.label}</span>
+        {getStatusBadge(today?.status)}
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-6">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         {[
-          { label: 'Check In',  value: fmtTime(today?.checkIn),  icon: LogIn,   color: 'text-success-500' },
-          { label: 'Check Out', value: fmtTime(today?.checkOut), icon: LogOut,  color: 'text-danger-500' },
-          { label: 'Working Hours', value: calcHours(today?.checkIn, today?.checkOut), icon: Clock, color: 'text-accent-400' },
-          { label: 'Status',    value: conf.label,                icon: CheckCircle, color: 'text-primary-400' },
+          { label: 'Check In',  value: fmtTime(checkInVal),  icon: LogIn,   color: 'text-emerald-600' },
+          { label: 'Check Out', value: fmtTime(checkOutVal), icon: LogOut,  color: 'text-rose-600' },
+          { label: 'Working Hours', value: calcHours(checkInVal, checkOutVal), icon: Clock, color: 'text-sky-600' },
+          { label: 'Status',    value: today?.status || 'absent', icon: CheckCircle, color: 'text-indigo-600' },
         ].map(({ label, value, icon: Icon, color }) => (
-          <div key={label} className="bg-dark-900/50 rounded-xl p-4">
-            <div className="flex items-center gap-2 mb-2">
+          <div key={label} className="bg-slate-50 border border-slate-200/80 rounded-lg p-3.5">
+            <div className="flex items-center gap-1.5 mb-1.5">
               <Icon size={14} className={color} />
-              <span className="text-xs text-gray-400 uppercase tracking-wide">{label}</span>
+              <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">{label}</span>
             </div>
-            <p className="text-lg font-semibold text-white">{value}</p>
+            <p className="text-sm font-bold text-slate-900 capitalize">{value}</p>
           </div>
         ))}
       </div>
 
-      <div className="mt-5 flex gap-3">
-        {!today?.checkIn && (
-          <button className="btn-success" onClick={onCheckIn} disabled={loading}>
-            {loading ? <Loader2 size={14} className="animate-spin" /> : <LogIn size={16} />}
+      <div className="pt-2 flex gap-3">
+        {!checkInVal && (
+          <button className="btn-primary bg-emerald-600 hover:bg-emerald-700 py-2 px-4 text-xs shadow-xs" onClick={onCheckIn} disabled={loading}>
+            {loading ? <Loader2 size={14} className="animate-spin mr-1.5" /> : <LogIn size={14} className="mr-1.5" />}
             Check In
           </button>
         )}
-        {today?.checkIn && !today?.checkOut && (
-          <button className="btn-danger" onClick={onCheckOut} disabled={loading}>
-            {loading ? <Loader2 size={14} className="animate-spin" /> : <LogOut size={16} />}
+        {checkInVal && !checkOutVal && (
+          <button className="btn-primary bg-rose-600 hover:bg-rose-700 py-2 px-4 text-xs shadow-xs" onClick={onCheckOut} disabled={loading}>
+            {loading ? <Loader2 size={14} className="animate-spin mr-1.5" /> : <LogOut size={14} className="mr-1.5" />}
             Check Out
           </button>
         )}
-        {today?.checkIn && today?.checkOut && (
-          <div className="flex items-center gap-2 text-success-500 text-sm">
-            <CheckCircle size={16} /> Session complete
+        {checkInVal && checkOutVal && (
+          <div className="flex items-center gap-2 text-emerald-700 text-xs font-semibold bg-emerald-50 px-3 py-1.5 rounded-md border border-emerald-200">
+            <CheckCircle size={15} /> Session complete for today
           </div>
         )}
       </div>
@@ -98,178 +105,42 @@ function TodayCard({ today, onCheckIn, onCheckOut, loading }) {
   );
 }
 
-// ── Calendar Grid ─────────────────────────────────────────────────────────────
-function CalendarGrid({ records, month, year, onPrev, onNext }) {
-  const firstDay = new Date(year, month, 1).getDay();
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
-  const today = new Date();
-
-  const recordMap = {};
-  records.forEach((r) => {
-    const d = new Date(r.date).getDate();
-    recordMap[d] = r.status;
-  });
-
-  const cells = [];
-  for (let i = 0; i < firstDay; i++) cells.push(null);
-  for (let d = 1; d <= daysInMonth; d++) cells.push(d);
-
-  const monthName = new Date(year, month).toLocaleString('en-IN', { month: 'long', year: 'numeric' });
-
-  return (
-    <div className="glass p-5">
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-semibold text-white">Monthly Calendar</h2>
-        <div className="flex items-center gap-2">
-          <button className="btn-ghost btn-sm p-1.5" onClick={onPrev}><ChevronLeft size={16} /></button>
-          <span className="text-sm font-medium text-gray-200 w-36 text-center">{monthName}</span>
-          <button className="btn-ghost btn-sm p-1.5" onClick={onNext}><ChevronRight size={16} /></button>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-7 gap-1 mb-2">
-        {['Su','Mo','Tu','We','Th','Fr','Sa'].map((d) => (
-          <div key={d} className="text-center text-xs font-medium text-gray-500 py-1">{d}</div>
-        ))}
-      </div>
-      <div className="grid grid-cols-7 gap-1">
-        {cells.map((day, idx) => {
-          if (!day) return <div key={`e-${idx}`} />;
-          const status = recordMap[day];
-          const isToday = today.getFullYear() === year && today.getMonth() === month && today.getDate() === day;
-          const dotColor = DAY_STATUS_COLOR[status] || 'bg-dark-700';
-          return (
-            <div key={day}
-              className={`relative flex flex-col items-center py-2 rounded-lg text-xs font-medium
-                ${isToday ? 'ring-2 ring-primary-500 bg-primary-600/10' : ''}
-                ${status ? '' : 'text-gray-600'}`}>
-              <span className={isToday ? 'text-primary-300 font-bold' : 'text-gray-300'}>{day}</span>
-              {status && (
-                <span className={`mt-1 w-1.5 h-1.5 rounded-full ${dotColor}`} title={status} />
-              )}
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Legend */}
-      <div className="flex flex-wrap gap-3 mt-4 pt-3 border-t border-white/[0.06]">
-        {[
-          { label: 'Present', color: 'bg-success-500' },
-          { label: 'Absent', color: 'bg-danger-500' },
-          { label: 'Late', color: 'bg-warning-500' },
-          { label: 'Half Day', color: 'bg-accent-400' },
-          { label: 'Leave', color: 'bg-accent-400/40' },
-        ].map(({ label, color }) => (
-          <div key={label} className="flex items-center gap-1.5 text-xs text-gray-400">
-            <span className={`w-2 h-2 rounded-full ${color}`} />
-            {label}
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-// ── Correction Modal ──────────────────────────────────────────────────────────
-function CorrectionModal({ isOpen, onClose, onSuccess }) {
-  const [form, setForm] = useState({ date: '', requestedCheckIn: '', requestedCheckOut: '', reason: '' });
-  const [submitting, setSubmitting] = useState(false);
-
-  const handleChange = (e) => setForm((f) => ({ ...f, [e.target.name]: e.target.value }));
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!form.date || !form.requestedCheckIn || !form.requestedCheckOut || !form.reason.trim())
-      return toast.error('Please fill all fields');
-    setSubmitting(true);
-    try {
-      await api.post('/attendance/regularization', form);
-      toast.success('Correction request submitted');
-      onSuccess();
-      onClose();
-      setForm({ date: '', requestedCheckIn: '', requestedCheckOut: '', reason: '' });
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to submit request');
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Request Attendance Correction" size="md"
-      footer={
-        <>
-          <button className="btn-secondary" onClick={onClose} disabled={submitting}>Cancel</button>
-          <button className="btn-primary" onClick={handleSubmit} disabled={submitting}>
-            {submitting ? <Loader2 size={14} className="animate-spin" /> : null}
-            Submit Request
-          </button>
-        </>
-      }>
-      <form className="space-y-4" onSubmit={handleSubmit}>
-        <div>
-          <label className="form-label">Date</label>
-          <input type="date" name="date" value={form.date} onChange={handleChange} className="form-input"
-            max={new Date().toISOString().slice(0, 10)} />
-        </div>
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="form-label">Requested Check-In</label>
-            <input type="time" name="requestedCheckIn" value={form.requestedCheckIn} onChange={handleChange} className="form-input" />
-          </div>
-          <div>
-            <label className="form-label">Requested Check-Out</label>
-            <input type="time" name="requestedCheckOut" value={form.requestedCheckOut} onChange={handleChange} className="form-input" />
-          </div>
-        </div>
-        <div>
-          <label className="form-label">Reason</label>
-          <textarea name="reason" value={form.reason} onChange={handleChange} rows={3}
-            placeholder="Explain why this correction is needed..."
-            className="form-input resize-none" />
-        </div>
-      </form>
-    </Modal>
-  );
-}
-
-// ── Main Page ─────────────────────────────────────────────────────────────────
-export default function Attendance() {
-  const now = new Date();
+export default function EmployeeAttendance() {
   const [today, setToday] = useState(null);
-  const [records, setRecords] = useState([]);
+  const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
-  const [correctionOpen, setCorrectionOpen] = useState(false);
-  const [viewMonth, setViewMonth] = useState(now.getMonth());
-  const [viewYear, setViewYear] = useState(now.getFullYear());
-  const [toggle, setToggle] = useState('daily');
+  const [regModal, setRegModal] = useState(false);
+  const [regDate, setRegDate] = useState('');
+  const [regCheckIn, setRegCheckIn] = useState('');
+  const [regCheckOut, setRegCheckOut] = useState('');
+  const [regReason, setRegReason] = useState('');
+  const [regSubmitting, setRegSubmitting] = useState(false);
 
-  const fetchData = useCallback(async () => {
+  const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const [todayRes, histRes] = await Promise.all([
+      const [tRes, hRes] = await Promise.allSettled([
         api.get('/attendance/today'),
-        api.get('/attendance', { params: { month: viewMonth + 1, year: viewYear } }),
+        api.get('/attendance/my-history'),
       ]);
-      setToday(todayRes.data?.data || todayRes.data);
-      setRecords(histRes.data?.data || histRes.data || []);
+      if (tRes.status === 'fulfilled') setToday(tRes.value.data?.data || tRes.value.data);
+      if (hRes.status === 'fulfilled') setHistory(hRes.value.data?.data || hRes.value.data || []);
     } catch {
-      toast.error('Failed to load attendance data');
+      toast.error('Failed to load attendance');
     } finally {
       setLoading(false);
     }
-  }, [viewMonth, viewYear]);
+  }, []);
 
-  useEffect(() => { fetchData(); }, [fetchData]);
+  useEffect(() => { loadData(); }, [loadData]);
 
   const handleCheckIn = async () => {
     setActionLoading(true);
     try {
       await api.post('/attendance/checkin');
       toast.success('Checked in successfully!');
-      fetchData();
+      loadData();
     } catch (err) {
       toast.error(err.response?.data?.message || 'Check-in failed');
     } finally {
@@ -282,7 +153,7 @@ export default function Attendance() {
     try {
       await api.post('/attendance/checkout');
       toast.success('Checked out successfully!');
-      fetchData();
+      loadData();
     } catch (err) {
       toast.error(err.response?.data?.message || 'Check-out failed');
     } finally {
@@ -290,112 +161,156 @@ export default function Attendance() {
     }
   };
 
-  const handlePrevMonth = () => {
-    if (viewMonth === 0) { setViewMonth(11); setViewYear((y) => y - 1); }
-    else setViewMonth((m) => m - 1);
+  const handleRegSubmit = async (e) => {
+    e.preventDefault();
+    setRegSubmitting(true);
+    try {
+      await api.post('/attendance/regularization', {
+        date: regDate,
+        requested_check_in: regCheckIn ? `${regDate}T${regCheckIn}:00Z` : null,
+        requested_check_out: regCheckOut ? `${regDate}T${regCheckOut}:00Z` : null,
+        reason: regReason,
+      });
+      toast.success('Regularization request submitted');
+      setRegModal(false);
+      setRegReason('');
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to submit regularization');
+    } finally {
+      setRegSubmitting(false);
+    }
   };
-
-  const handleNextMonth = () => {
-    if (viewMonth === 11) { setViewMonth(0); setViewYear((y) => y + 1); }
-    else setViewMonth((m) => m + 1);
-  };
-
-  const displayedRecords = toggle === 'weekly'
-    ? records.slice(-7)
-    : records;
 
   return (
-    <div className="p-6 space-y-6 animate-fade-in">
+    <div className="space-y-6 max-w-7xl mx-auto">
       {/* Header */}
-      <div className="page-header">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-5">
         <div>
-          <h1 className="page-title">My Attendance</h1>
-          <p className="page-subtitle">Track your daily attendance and request corrections</p>
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">My Attendance Log</h1>
+          <p className="text-xs font-medium text-slate-500 mt-1">Track daily check-ins, check-outs, and attendance history.</p>
         </div>
-        <div className="flex items-center gap-3">
-          <button className="btn-ghost btn-sm" onClick={fetchData} disabled={loading}>
-            <RefreshCw size={14} className={loading ? 'animate-spin' : ''} /> Refresh
-          </button>
-          <button className="btn-secondary" onClick={() => setCorrectionOpen(true)}>
-            <Edit3 size={14} /> Request Correction
-          </button>
-        </div>
+        <button onClick={() => setRegModal(true)} className="btn-secondary py-2 px-3 text-xs">
+          Request Regularization
+        </button>
       </div>
 
       {/* Today card */}
-      {loading ? (
-        <div className="skeleton h-48 rounded-2xl" />
-      ) : (
-        <TodayCard today={today} onCheckIn={handleCheckIn} onCheckOut={handleCheckOut} loading={actionLoading} />
-      )}
+      <TodayCard
+        today={today}
+        onCheckIn={handleCheckIn}
+        onCheckOut={handleCheckOut}
+        loading={actionLoading}
+      />
 
-      {/* Calendar + Table */}
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-        <div className="lg:col-span-2">
-          {loading
-            ? <div className="skeleton h-80 rounded-2xl" />
-            : <CalendarGrid records={records} month={viewMonth} year={viewYear} onPrev={handlePrevMonth} onNext={handleNextMonth} />}
+      {/* History Table */}
+      <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-xs space-y-4">
+        <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+          <h2 className="text-sm font-bold text-slate-900">Attendance History</h2>
+          <button onClick={loadData} className="p-1.5 border border-slate-200 rounded-md hover:bg-slate-50 text-slate-600">
+            <RefreshCw className="w-3.5 h-3.5" />
+          </button>
         </div>
 
-        <div className="lg:col-span-3 glass p-5">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-white">Attendance History</h2>
-            <div className="flex items-center bg-dark-900/60 rounded-xl p-0.5 gap-0.5">
-              {['daily', 'weekly'].map((v) => (
-                <button key={v} onClick={() => setToggle(v)}
-                  className={`px-3 py-1.5 text-xs rounded-lg font-medium transition-all duration-200 capitalize
-                    ${toggle === v ? 'bg-primary-600 text-white' : 'text-gray-400 hover:text-white'}`}>
-                  {v}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div className="table-container">
-            {loading ? (
-              <div className="space-y-3">
-                {[1,2,3,4,5].map((i) => <div key={i} className="skeleton h-10 rounded-xl" />)}
-              </div>
-            ) : displayedRecords.length === 0 ? (
-              <div className="py-12 text-center text-gray-500">
-                <Calendar size={36} className="mx-auto mb-2 opacity-40" />
-                <p>No records for this period</p>
-              </div>
-            ) : (
-              <table className="data-table">
-                <thead>
-                  <tr>
-                    <th>Date</th>
-                    <th>Check In</th>
-                    <th>Check Out</th>
-                    <th>Hours</th>
-                    <th>Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {[...displayedRecords].reverse().map((r) => {
-                    const conf = STATUS_CONFIG[r.status] || STATUS_CONFIG.absent;
-                    return (
-                      <tr key={r._id || r.date}>
-                        <td className="font-medium">{fmtDate(r.date)}</td>
-                        <td>{fmtTime(r.checkIn)}</td>
-                        <td>{fmtTime(r.checkOut)}</td>
-                        <td>{calcHours(r.checkIn, r.checkOut)}</td>
-                        <td><span className={conf.cls}>{conf.label}</span></td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            )}
-          </div>
+        <div className="overflow-x-auto border border-slate-100 rounded-lg">
+          <table className="w-full text-left text-xs border-collapse">
+            <thead className="bg-slate-50/80 border-b border-slate-200 text-slate-600 font-semibold uppercase tracking-wider">
+              <tr>
+                <th className="py-3 px-4">Date</th>
+                <th className="py-3 px-4">Check In</th>
+                <th className="py-3 px-4">Check Out</th>
+                <th className="py-3 px-4">Working Hours</th>
+                <th className="py-3 px-4">Status</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 text-slate-800 font-medium">
+              {loading ? (
+                <tr>
+                  <td colSpan="5" className="py-10 text-center text-slate-400">Loading history...</td>
+                </tr>
+              ) : history.length === 0 ? (
+                <tr>
+                  <td colSpan="5" className="py-10 text-center text-slate-400">No past attendance records found.</td>
+                </tr>
+              ) : (
+                history.map((row, idx) => {
+                  const checkInTime = fmtTime(row.checkIn || row.check_in);
+                  const checkOutTime = fmtTime(row.checkOut || row.check_out);
+                  const hrs = calcHours(row.checkIn || row.check_in, row.checkOut || row.check_out);
+
+                  return (
+                    <tr key={idx} className="hover:bg-slate-50/60 transition-colors">
+                      <td className="py-3 px-4 text-slate-900 font-semibold">{fmtDate(row.date)}</td>
+                      <td className="py-3 px-4 text-slate-800 font-semibold">{checkInTime}</td>
+                      <td className="py-3 px-4 text-slate-800 font-semibold">{checkOutTime}</td>
+                      <td className="py-3 px-4 text-slate-600 font-mono">{hrs}</td>
+                      <td className="py-3 px-4">{getStatusBadge(row.status)}</td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
 
-      <CorrectionModal
-        isOpen={correctionOpen}
-        onClose={() => setCorrectionOpen(false)}
-        onSuccess={fetchData}
-      />
+      {/* Regularization Modal */}
+      {regModal && (
+        <Modal title="Request Attendance Regularization" onClose={() => setRegModal(false)}>
+          <form onSubmit={handleRegSubmit} className="space-y-4">
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">Date</label>
+              <input
+                type="date"
+                required
+                value={regDate}
+                onChange={(e) => setRegDate(e.target.value)}
+                className="input text-xs"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Requested Check In</label>
+                <input
+                  type="time"
+                  required
+                  value={regCheckIn}
+                  onChange={(e) => setRegCheckIn(e.target.value)}
+                  className="input text-xs"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Requested Check Out</label>
+                <input
+                  type="time"
+                  required
+                  value={regCheckOut}
+                  onChange={(e) => setRegCheckOut(e.target.value)}
+                  className="input text-xs"
+                />
+              </div>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">Reason</label>
+              <textarea
+                required
+                rows={3}
+                value={regReason}
+                onChange={(e) => setRegReason(e.target.value)}
+                placeholder="Explain why check in/out was missed..."
+                className="input text-xs"
+              />
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <button type="button" onClick={() => setRegModal(false)} className="btn-secondary text-xs">
+                Cancel
+              </button>
+              <button type="submit" disabled={regSubmitting} className="btn-primary text-xs">
+                {regSubmitting ? 'Submitting...' : 'Submit Request'}
+              </button>
+            </div>
+          </form>
+        </Modal>
+      )}
     </div>
   );
 }

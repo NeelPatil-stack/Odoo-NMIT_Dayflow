@@ -1,181 +1,129 @@
 import { useState, useEffect } from 'react';
-import { DollarSign, FileText, CheckCircle2, Clock, Plus, Search, Filter } from 'lucide-react';
+import { DollarSign, Search, RefreshCw, CheckCircle, Download } from 'lucide-react';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
-import Modal from '../../components/ui/Modal';
 
-export default function AdminPayroll() {
-  const [payrolls, setPayrolls] = useState([]);
+export default function Payroll() {
+  const [payroll, setPayroll] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [month, setMonth] = useState(new Date().getMonth() + 1);
-  const [year, setYear] = useState(new Date().getFullYear());
-  const [genModalOpen, setGenModalOpen] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
+  const [search, setSearch] = useState('');
 
   useEffect(() => {
     fetchPayroll();
-  }, [month, year]);
+  }, []);
 
   const fetchPayroll = async () => {
     setLoading(true);
     try {
-      const res = await api.get(`/payroll?month=${month}&year=${year}`);
-      setPayrolls(res.data.data || []);
+      const res = await api.get('/payroll');
+      setPayroll(res.data?.data || res.data || []);
     } catch (err) {
       console.error('Error fetching payroll:', err);
+      toast.error('Failed to load payroll records');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleGeneratePayroll = async () => {
-    setSubmitting(true);
-    try {
-      await api.post('/payroll/generate', { month, year });
-      toast.success(`Payroll generated for ${month}/${year}`);
-      setGenModalOpen(false);
-      fetchPayroll();
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to generate payroll');
-    } finally {
-      setSubmitting(false);
-    }
-  };
+  const filteredPayroll = payroll.filter(p => {
+    const empName = p.employee?.name || `${p.employee?.firstName || p.employee?.first_name || ''} ${p.employee?.lastName || p.employee?.last_name || ''}`;
+    const empId = p.employee?.employeeId || p.employee?.employee_id || p.employeeId || '';
+    return empName.toLowerCase().includes(search.toLowerCase()) || empId.toLowerCase().includes(search.toLowerCase());
+  });
 
-  const handleStatusUpdate = async (id, status) => {
-    try {
-      await api.patch(`/payroll/${id}/status`, { status });
-      toast.success(`Status updated to ${status}`);
-      fetchPayroll();
-    } catch (err) {
-      toast.error('Failed to update status');
-    }
+  const getStatusBadge = (status) => {
+    const s = String(status || '').toLowerCase();
+    if (s === 'paid') return <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">Paid</span>;
+    if (s === 'processed') return <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-amber-50 text-amber-700 border border-amber-200">Processed</span>;
+    return <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-700 border border-slate-200">{s}</span>;
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div className="space-y-6 max-w-7xl mx-auto">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-5">
         <div>
-          <h1 className="text-2xl font-display font-bold text-white">Payroll & Payslips</h1>
-          <p className="text-sm text-gray-400">Generate monthly payroll, review structures, and manage disbursements.</p>
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Payroll & Payslips</h1>
+          <p className="text-xs font-medium text-slate-500 mt-1">Manage monthly salary structures, disbursements, and net compensation.</p>
         </div>
 
-        <button onClick={() => setGenModalOpen(true)} className="btn btn-primary">
-          <Plus className="w-4 h-4 mr-2" /> Generate Monthly Payroll
+        <button onClick={fetchPayroll} className="btn-secondary text-xs py-2 px-3">
+          <RefreshCw className="w-4 h-4 mr-1.5" /> Refresh
         </button>
       </div>
 
-      <div className="card space-y-4">
-        {/* Controls */}
-        <div className="flex flex-wrap items-center gap-4">
-          <div>
-            <label className="block text-xs text-gray-400 mb-1">Month</label>
-            <select
-              value={month}
-              onChange={(e) => setMonth(Number(e.target.value))}
-              className="input text-sm py-1.5 min-w-[120px]"
-            >
-              {[...Array(12)].map((_, i) => (
-                <option key={i + 1} value={i + 1}>
-                  {new Date(0, i).toLocaleString('default', { month: 'long' })}
-                </option>
-              ))}
-            </select>
+      {/* Main Table Card */}
+      <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-xs space-y-4">
+        {/* Search */}
+        <div className="flex items-center justify-between gap-4">
+          <div className="relative w-full max-w-sm">
+            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <input
+              type="text"
+              placeholder="Search by employee..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="input pl-9 text-xs py-2"
+            />
           </div>
-
-          <div>
-            <label className="block text-xs text-gray-400 mb-1">Year</label>
-            <select
-              value={year}
-              onChange={(e) => setYear(Number(e.target.value))}
-              className="input text-sm py-1.5 min-w-[100px]"
-            >
-              {[2024, 2025, 2026, 2027].map(y => (
-                <option key={y} value={y}>{y}</option>
-              ))}
-            </select>
-          </div>
+          <span className="text-xs text-slate-500 font-medium">Total: {filteredPayroll.length} slips</span>
         </div>
 
         {/* Table */}
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
-            <thead className="text-xs uppercase bg-white/[0.02] text-gray-400 border-b border-white/5">
+        <div className="overflow-x-auto border border-slate-100 rounded-lg">
+          <table className="w-full text-left text-xs border-collapse">
+            <thead className="bg-slate-50/80 border-b border-slate-200 text-slate-600 font-semibold uppercase tracking-wider">
               <tr>
                 <th className="py-3 px-4">Employee</th>
+                <th className="py-3 px-4">Month/Year</th>
                 <th className="py-3 px-4">Basic Salary</th>
+                <th className="py-3 px-4">HRA</th>
                 <th className="py-3 px-4">Allowances</th>
                 <th className="py-3 px-4">Deductions</th>
-                <th className="py-3 px-4">Gross Salary</th>
                 <th className="py-3 px-4">Net Salary</th>
                 <th className="py-3 px-4">Status</th>
-                <th className="py-3 px-4 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/5">
+            <tbody className="divide-y divide-slate-100 text-slate-800 font-medium">
               {loading ? (
                 <tr>
-                  <td colSpan="8" className="py-8 text-center text-gray-400">Loading payroll records...</td>
+                  <td colSpan="8" className="py-12 text-center text-slate-400">Loading payroll records...</td>
                 </tr>
-              ) : payrolls.length === 0 ? (
+              ) : filteredPayroll.length === 0 ? (
                 <tr>
-                  <td colSpan="8" className="py-8 text-center text-gray-500">No payroll generated for {month}/{year}. Click 'Generate Monthly Payroll' to create records.</td>
+                  <td colSpan="8" className="py-12 text-center text-slate-400">No payroll records found.</td>
                 </tr>
               ) : (
-                payrolls.map((p) => (
-                  <tr key={p.id} className="hover:bg-white/[0.01]">
-                    <td className="py-3 px-4 font-medium text-white">
-                      {p.employee?.first_name} {p.employee?.last_name}
-                      <span className="block text-xs text-gray-500">{p.employee?.employee_id}</span>
-                    </td>
-                    <td className="py-3 px-4 text-gray-300">₹{Number(p.basic_salary).toLocaleString()}</td>
-                    <td className="py-3 px-4 text-gray-300">₹{(Number(p.hra || 0) + Number(p.allowances || 0)).toLocaleString()}</td>
-                    <td className="py-3 px-4 text-danger-400">₹{(Number(p.deductions || 0) + Number(p.tax_deductions || 0)).toLocaleString()}</td>
-                    <td className="py-3 px-4 text-gray-200 font-medium">₹{Number(p.gross_salary).toLocaleString()}</td>
-                    <td className="py-3 px-4 text-success-400 font-bold">₹{Number(p.net_salary).toLocaleString()}</td>
-                    <td className="py-3 px-4">
-                      <span className={`badge ${
-                        p.status === 'paid' ? 'badge-success' :
-                        p.status === 'processed' ? 'badge-info' : 'badge-warning'
-                      }`}>
-                        {p.status}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4 text-right">
-                      {p.status !== 'paid' && (
-                        <button
-                          onClick={() => handleStatusUpdate(p.id, 'paid')}
-                          className="btn btn-xs btn-primary"
-                        >
-                          Mark Paid
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                ))
+                filteredPayroll.map((p) => {
+                  const empName = p.employee?.name || `${p.employee?.firstName || p.employee?.first_name || ''} ${p.employee?.lastName || p.employee?.last_name || ''}`.trim() || 'Employee';
+                  const empId = p.employee?.employeeId || p.employee?.employee_id || p.employeeId || '—';
+                  const basic = p.basicSalary || p.basic_salary || 0;
+                  const hra = p.hra || 0;
+                  const allowances = p.allowances || 0;
+                  const deductions = p.deductions || 0;
+                  const net = p.netSalary || p.net_salary || (basic + hra + allowances - deductions);
+
+                  return (
+                    <tr key={p._id || p.id} className="hover:bg-slate-50/60 transition-colors">
+                      <td className="py-3 px-4">
+                        <p className="font-semibold text-slate-900">{empName}</p>
+                        <p className="text-[10px] text-slate-400 font-mono">{empId}</p>
+                      </td>
+                      <td className="py-3 px-4 text-slate-600 font-medium">{p.month}/{p.year}</td>
+                      <td className="py-3 px-4 text-slate-700 font-mono">₹{Number(basic).toLocaleString('en-IN')}</td>
+                      <td className="py-3 px-4 text-slate-700 font-mono">₹{Number(hra).toLocaleString('en-IN')}</td>
+                      <td className="py-3 px-4 text-slate-700 font-mono">₹{Number(allowances).toLocaleString('en-IN')}</td>
+                      <td className="py-3 px-4 text-rose-600 font-mono">₹{Number(deductions).toLocaleString('en-IN')}</td>
+                      <td className="py-3 px-4 text-emerald-700 font-mono font-bold text-sm">₹{Number(net).toLocaleString('en-IN')}</td>
+                      <td className="py-3 px-4">{getStatusBadge(p.status)}</td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
         </div>
       </div>
-
-      {/* Generate Payroll Modal */}
-      {genModalOpen && (
-        <Modal isOpen={genModalOpen} onClose={() => setGenModalOpen(false)} title="Generate Monthly Payroll">
-          <div className="space-y-4">
-            <p className="text-sm text-gray-300">
-              This action will auto-calculate earnings, allowances, and deductions for all active employees for period: <span className="text-white font-bold">{month}/{year}</span>.
-            </p>
-
-            <div className="flex justify-end gap-3 pt-2">
-              <button onClick={() => setGenModalOpen(false)} className="btn btn-ghost text-sm">Cancel</button>
-              <button disabled={submitting} onClick={handleGeneratePayroll} className="btn btn-primary text-sm">
-                {submitting ? 'Generating...' : 'Confirm & Generate'}
-              </button>
-            </div>
-          </div>
-        </Modal>
-      )}
     </div>
   );
 }

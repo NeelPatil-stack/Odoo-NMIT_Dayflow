@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Briefcase, Plus, UserCheck, Star, FileText, Search } from 'lucide-react';
+import { Plus, Star, Search, X, Loader2 } from 'lucide-react';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
 import Modal from '../../components/ui/Modal';
@@ -7,9 +7,11 @@ import Modal from '../../components/ui/Modal';
 export default function Recruitment() {
   const [applications, setApplications] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
   const [modalOpen, setModalOpen] = useState(false);
   const [formData, setFormData] = useState({
-    applicant_name: '', email: '', phone: '', position: '', experience_years: 2, skills: '', cover_letter: ''
+    candidateName: '', candidateEmail: '', candidatePhone: '', position: '', experienceYears: 2, notes: ''
   });
   const [submitting, setSubmitting] = useState(false);
 
@@ -21,9 +23,10 @@ export default function Recruitment() {
     setLoading(true);
     try {
       const res = await api.get('/recruitment');
-      setApplications(res.data.data || []);
+      setApplications(res.data?.data || res.data || []);
     } catch (err) {
       console.error('Error fetching recruitment applications:', err);
+      toast.error('Failed to load recruitment data');
     } finally {
       setLoading(false);
     }
@@ -36,9 +39,9 @@ export default function Recruitment() {
       await api.post('/recruitment', formData);
       toast.success('Applicant registered successfully');
       setModalOpen(false);
-      setFormData({ applicant_name: '', email: '', phone: '', position: '', experience_years: 2, skills: '', cover_letter: '' });
+      setFormData({ candidateName: '', candidateEmail: '', candidatePhone: '', position: '', experienceYears: 2, notes: '' });
       fetchApplications();
-    } catch (err) {
+    } catch {
       toast.error('Failed to add applicant');
     } finally {
       setSubmitting(false);
@@ -47,157 +50,196 @@ export default function Recruitment() {
 
   const handleStatusChange = async (id, status) => {
     try {
-      await api.patch(`/recruitment/${id}`, { status });
+      await api.put(`/recruitment/${id}`, { status });
       toast.success(`Application updated to ${status}`);
       fetchApplications();
-    } catch (err) {
+    } catch {
       toast.error('Failed to update status');
     }
   };
 
+  const filtered = applications.filter(app => {
+    const name = (app.candidateName || app.candidate_name || app.applicant_name || '').toLowerCase();
+    const pos = (app.position || '').toLowerCase();
+    const email = (app.candidateEmail || app.candidate_email || app.email || '').toLowerCase();
+    const matchesSearch = name.includes(search.toLowerCase()) || pos.includes(search.toLowerCase()) || email.includes(search.toLowerCase());
+    const matchesStatus = statusFilter === 'all' || app.status === statusFilter;
+    return matchesSearch && matchesStatus;
+  });
+
+  const getStatusBadge = (status) => {
+    const s = String(status || '').toLowerCase();
+    if (s === 'hired' || s === 'offered') return <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 capitalize">{s}</span>;
+    if (s === 'rejected') return <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-rose-50 text-rose-700 border border-rose-200 capitalize">{s}</span>;
+    if (s === 'interviewing' || s === 'shortlisted' || s === 'applied') return <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-sky-50 text-sky-700 border border-sky-200 capitalize">{s}</span>;
+    return <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-amber-50 text-amber-700 border border-amber-200 capitalize">{s || 'screening'}</span>;
+  };
+
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-6 max-w-7xl mx-auto">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-5">
         <div>
-          <h1 className="text-2xl font-display font-bold text-white">Recruitment & Talent Pipeline</h1>
-          <p className="text-sm text-gray-400">Track job applicants, experience ratings, and hiring status.</p>
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Recruitment & Talent Pipeline</h1>
+          <p className="text-xs font-medium text-slate-500 mt-1">Track job applicants, interview stages, and hiring decisions.</p>
         </div>
 
-        <button onClick={() => setModalOpen(true)} className="btn btn-primary">
-          <Plus className="w-4 h-4 mr-2" /> Add Applicant
+        <button onClick={() => setModalOpen(true)} className="btn-primary py-2 px-4 text-xs shadow-xs">
+          <Plus className="w-4 h-4 mr-1.5" /> Add Applicant
         </button>
       </div>
 
-      <div className="card space-y-4">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
-            <thead className="text-xs uppercase bg-white/[0.02] text-gray-400 border-b border-white/5">
+      {/* Main Table Card */}
+      <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-xs space-y-4">
+        {/* Controls */}
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="relative w-full sm:w-72">
+            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <input
+              type="text"
+              placeholder="Search candidate or position..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="input pl-9 text-xs py-2"
+            />
+          </div>
+
+          <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-lg border border-slate-200 text-xs font-medium overflow-x-auto">
+            {['all', 'applied', 'screening', 'interviewing', 'offered', 'hired', 'rejected'].map((st) => (
+              <button
+                key={st}
+                onClick={() => setStatusFilter(st)}
+                className={`px-2.5 py-1 rounded-md capitalize transition-colors cursor-pointer text-[11px] ${
+                  statusFilter === st ? 'bg-white text-slate-900 font-bold shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                {st}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Table */}
+        <div className="overflow-x-auto border border-slate-100 rounded-lg">
+          <table className="w-full text-left text-xs border-collapse">
+            <thead className="bg-slate-50/80 border-b border-slate-200 text-slate-600 font-semibold uppercase tracking-wider">
               <tr>
-                <th className="py-3 px-4">Applicant</th>
+                <th className="py-3 px-4">Candidate</th>
                 <th className="py-3 px-4">Position</th>
-                <th className="py-3 px-4">Experience</th>
-                <th className="py-3 px-4">Match Score</th>
-                <th className="py-3 px-4">Status</th>
-                <th className="py-3 px-4 text-right">Actions</th>
+                <th className="py-3 px-4">Contact</th>
+                <th className="py-3 px-4">Applied Date</th>
+                <th className="py-3 px-4">Stage</th>
+                <th className="py-3 px-4 text-right">Update Stage</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/5">
+            <tbody className="divide-y divide-slate-100 text-slate-800 font-medium">
               {loading ? (
                 <tr>
-                  <td colSpan="6" className="py-8 text-center text-gray-400">Loading applicants...</td>
+                  <td colSpan="6" className="py-12 text-center text-slate-400">Loading applicants...</td>
                 </tr>
-              ) : applications.length === 0 ? (
+              ) : filtered.length === 0 ? (
                 <tr>
-                  <td colSpan="6" className="py-8 text-center text-gray-500">No job applicants found.</td>
+                  <td colSpan="6" className="py-12 text-center text-slate-400">No recruitment candidates found.</td>
                 </tr>
               ) : (
-                applications.map((app) => (
-                  <tr key={app.id} className="hover:bg-white/[0.01]">
-                    <td className="py-3 px-4 font-medium text-white">
-                      {app.applicant_name}
-                      <span className="block text-xs text-gray-500">{app.email} • {app.phone || 'No phone'}</span>
-                    </td>
-                    <td className="py-3 px-4 text-gray-300 font-medium">{app.position}</td>
-                    <td className="py-3 px-4 text-gray-300">{app.experience_years} years</td>
-                    <td className="py-3 px-4">
-                      <div className="flex items-center gap-1 font-bold text-accent-400">
-                        <Star className="w-4 h-4 fill-accent-400 text-accent-400" />
-                        {app.score}%
-                      </div>
-                    </td>
-                    <td className="py-3 px-4">
-                      <span className={`badge ${
-                        app.status === 'hired' ? 'badge-success' :
-                        app.status === 'shortlisted' ? 'badge-info' :
-                        app.status === 'rejected' ? 'badge-danger' : 'badge-warning'
-                      } capitalize`}>
-                        {app.status}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4 text-right">
-                      <select
-                        value={app.status}
-                        onChange={(e) => handleStatusChange(app.id, e.target.value)}
-                        className="input text-xs py-1 px-2 min-w-[110px]"
-                      >
-                        <option value="review">Review</option>
-                        <option value="shortlisted">Shortlisted</option>
-                        <option value="hired">Hired</option>
-                        <option value="rejected">Rejected</option>
-                      </select>
-                    </td>
-                  </tr>
-                ))
+                filtered.map((app, idx) => {
+                  const name = app.candidateName || app.candidate_name || app.applicant_name || 'Candidate';
+                  const email = app.candidateEmail || app.candidate_email || app.email || '—';
+                  const phone = app.candidatePhone || app.candidate_phone || app.phone || '—';
+                  const applied = app.appliedDate || app.applied_date || app.createdAt || 'Recent';
+
+                  return (
+                    <tr key={app._id || app.id || idx} className="hover:bg-slate-50/60 transition-colors">
+                      <td className="py-3 px-4">
+                        <p className="font-semibold text-slate-900">{name}</p>
+                        <p className="text-[10px] text-slate-400">{email}</p>
+                      </td>
+                      <td className="py-3 px-4 font-semibold text-slate-800">{app.position || 'Software Developer'}</td>
+                      <td className="py-3 px-4 text-slate-600 font-mono">{phone}</td>
+                      <td className="py-3 px-4 text-slate-500">{applied}</td>
+                      <td className="py-3 px-4">{getStatusBadge(app.status)}</td>
+                      <td className="py-3 px-4 text-right">
+                        <select
+                          value={app.status || 'applied'}
+                          onChange={(e) => handleStatusChange(app._id || app.id, e.target.value)}
+                          className="bg-white border border-slate-200 rounded-md text-xs py-1 px-2 text-slate-700 font-medium focus:ring-1 focus:ring-slate-400 cursor-pointer"
+                        >
+                          <option value="applied">Applied</option>
+                          <option value="screening">Screening</option>
+                          <option value="interviewing">Interviewing</option>
+                          <option value="offered">Offered</option>
+                          <option value="hired">Hired</option>
+                          <option value="rejected">Rejected</option>
+                        </select>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
         </div>
       </div>
 
+      {/* Add Candidate Modal */}
       {modalOpen && (
-        <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title="Add Job Applicant">
+        <Modal title="Add Job Candidate" onClose={() => setModalOpen(false)}>
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">Candidate Full Name</label>
+              <input
+                type="text"
+                required
+                value={formData.candidateName}
+                onChange={(e) => setFormData({ ...formData, candidateName: e.target.value })}
+                className="input text-xs"
+                placeholder="e.g. Vikram Malhotra"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-medium text-gray-400 mb-1">Full Name</label>
-                <input
-                  type="text"
-                  required
-                  value={formData.applicant_name}
-                  onChange={(e) => setFormData({ ...formData, applicant_name: e.target.value })}
-                  className="input text-sm w-full"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-400 mb-1">Email</label>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Email</label>
                 <input
                   type="email"
                   required
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className="input text-sm w-full"
+                  value={formData.candidateEmail}
+                  onChange={(e) => setFormData({ ...formData, candidateEmail: e.target.value })}
+                  className="input text-xs"
+                  placeholder="vikram@example.com"
                 />
               </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-medium text-gray-400 mb-1">Position Applied For</label>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Phone</label>
                 <input
                   type="text"
-                  required
-                  value={formData.position}
-                  onChange={(e) => setFormData({ ...formData, position: e.target.value })}
-                  className="input text-sm w-full"
-                  placeholder="e.g. Senior React Developer"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-400 mb-1">Experience (Years)</label>
-                <input
-                  type="number"
-                  required
-                  value={formData.experience_years}
-                  onChange={(e) => setFormData({ ...formData, experience_years: Number(e.target.value) })}
-                  className="input text-sm w-full"
+                  value={formData.candidatePhone}
+                  onChange={(e) => setFormData({ ...formData, candidatePhone: e.target.value })}
+                  className="input text-xs"
+                  placeholder="9892011223"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-gray-400 mb-1">Key Skills</label>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">Position Applied For</label>
               <input
                 type="text"
-                value={formData.skills}
-                onChange={(e) => setFormData({ ...formData, skills: e.target.value })}
-                className="input text-sm w-full"
-                placeholder="React, Node.js, PostgreSQL"
+                required
+                value={formData.position}
+                onChange={(e) => setFormData({ ...formData, position: e.target.value })}
+                className="input text-xs"
+                placeholder="Senior Software Developer"
               />
             </div>
 
-            <div className="flex justify-end gap-3 pt-2">
-              <button type="button" onClick={() => setModalOpen(false)} className="btn btn-ghost text-sm">Cancel</button>
-              <button disabled={submitting} type="submit" className="btn btn-primary text-sm">Save Applicant</button>
+            <div className="flex justify-end gap-2 pt-2">
+              <button type="button" onClick={() => setModalOpen(false)} className="btn-secondary text-xs">
+                Cancel
+              </button>
+              <button type="submit" disabled={submitting} className="btn-primary text-xs">
+                {submitting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : 'Register Candidate'}
+              </button>
             </div>
           </form>
         </Modal>

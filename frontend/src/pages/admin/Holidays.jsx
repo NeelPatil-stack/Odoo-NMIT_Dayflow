@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { CalendarDays, Plus, Trash2, Edit3, Tag } from 'lucide-react';
+import { Plus, Trash2 } from 'lucide-react';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
 import Modal from '../../components/ui/Modal';
@@ -19,9 +19,9 @@ export default function Holidays() {
     setLoading(true);
     try {
       const res = await api.get('/holidays');
-      setHolidays(res.data.data || []);
-    } catch (err) {
-      console.error('Error fetching holidays:', err);
+      setHolidays(res.data?.data || res.data || []);
+    } catch {
+      toast.error('Failed to load holidays');
     } finally {
       setLoading(false);
     }
@@ -49,27 +49,30 @@ export default function Holidays() {
       await api.delete(`/holidays/${id}`);
       toast.success('Holiday removed');
       fetchHolidays();
-    } catch (err) {
+    } catch {
       toast.error('Failed to delete holiday');
     }
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-6 max-w-7xl mx-auto">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-5">
         <div>
-          <h1 className="text-2xl font-display font-bold text-white">Holiday Calendar</h1>
-          <p className="text-sm text-gray-400">Manage company and national holidays for leave calculation.</p>
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Holiday Calendar</h1>
+          <p className="text-xs font-medium text-slate-500 mt-1">Manage official company and national holidays for leave calculation.</p>
         </div>
-        <button onClick={() => setModalOpen(true)} className="btn btn-primary">
-          <Plus className="w-4 h-4 mr-2" /> Add Holiday
+
+        <button onClick={() => setModalOpen(true)} className="btn-primary py-2 px-4 text-xs shadow-xs">
+          <Plus className="w-4 h-4 mr-1.5" /> Add Holiday
         </button>
       </div>
 
-      <div className="card space-y-4">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
-            <thead className="text-xs uppercase bg-white/[0.02] text-gray-400 border-b border-white/5">
+      {/* Table Card */}
+      <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-xs space-y-4">
+        <div className="overflow-x-auto border border-slate-100 rounded-lg">
+          <table className="w-full text-left text-xs border-collapse">
+            <thead className="bg-slate-50/80 border-b border-slate-200 text-slate-600 font-semibold uppercase tracking-wider">
               <tr>
                 <th className="py-3 px-4">Holiday Name</th>
                 <th className="py-3 px-4">Date</th>
@@ -78,27 +81,33 @@ export default function Holidays() {
                 <th className="py-3 px-4 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/5">
+            <tbody className="divide-y divide-slate-100 text-slate-800 font-medium">
               {loading ? (
                 <tr>
-                  <td colSpan="5" className="py-8 text-center text-gray-400">Loading holidays...</td>
+                  <td colSpan="5" className="py-12 text-center text-slate-400">Loading holidays...</td>
                 </tr>
               ) : holidays.length === 0 ? (
                 <tr>
-                  <td colSpan="5" className="py-8 text-center text-gray-500">No holidays added yet.</td>
+                  <td colSpan="5" className="py-12 text-center text-slate-400">No holidays added yet.</td>
                 </tr>
               ) : (
-                holidays.map((h) => (
-                  <tr key={h.id} className="hover:bg-white/[0.01]">
-                    <td className="py-3 px-4 font-medium text-white">{h.name}</td>
-                    <td className="py-3 px-4 text-gray-300">{h.date}</td>
+                holidays.map((h, idx) => (
+                  <tr key={h._id || h.id || idx} className="hover:bg-slate-50/60 transition-colors">
+                    <td className="py-3 px-4 font-semibold text-slate-900">{h.name}</td>
+                    <td className="py-3 px-4 text-slate-700 font-medium">{h.date}</td>
                     <td className="py-3 px-4">
-                      <span className="badge badge-primary capitalize">{h.type}</span>
+                      <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-sky-50 text-sky-700 border border-sky-200 capitalize">
+                        {h.type || 'national'}
+                      </span>
                     </td>
-                    <td className="py-3 px-4 text-gray-400">{h.description || '—'}</td>
+                    <td className="py-3 px-4 text-slate-500 max-w-xs truncate">{h.description || '—'}</td>
                     <td className="py-3 px-4 text-right">
-                      <button onClick={() => handleDelete(h.id)} className="btn btn-xs text-danger-400 hover:bg-danger-500/10">
-                        <Trash2 className="w-4 h-4" />
+                      <button
+                        onClick={() => handleDelete(h._id || h.id)}
+                        className="p-1.5 text-rose-600 hover:bg-rose-50 rounded-md transition-colors"
+                        title="Delete"
+                      >
+                        <Trash2 size={14} />
                       </button>
                     </td>
                   </tr>
@@ -110,59 +119,60 @@ export default function Holidays() {
       </div>
 
       {modalOpen && (
-        <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title="Add New Holiday">
+        <Modal title="Add Holiday" onClose={() => setModalOpen(false)}>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-xs font-medium text-gray-400 mb-1">Holiday Name</label>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">Holiday Name</label>
               <input
                 type="text"
                 required
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="input text-sm w-full"
-                placeholder="e.g. Independence Day"
+                className="input text-xs"
+                placeholder="e.g. Republic Day"
               />
             </div>
-
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-medium text-gray-400 mb-1">Date</label>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Date</label>
                 <input
                   type="date"
                   required
                   value={formData.date}
                   onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                  className="input text-sm w-full"
+                  className="input text-xs"
                 />
               </div>
-
               <div>
-                <label className="block text-xs font-medium text-gray-400 mb-1">Type</label>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Type</label>
                 <select
                   value={formData.type}
                   onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-                  className="input text-sm w-full"
+                  className="input text-xs"
                 >
                   <option value="national">National</option>
                   <option value="regional">Regional</option>
                   <option value="company">Company</option>
-                  <option value="optional">Optional</option>
                 </select>
               </div>
             </div>
-
             <div>
-              <label className="block text-xs font-medium text-gray-400 mb-1">Description (Optional)</label>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">Description</label>
               <textarea
+                rows={2}
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                className="input text-sm w-full h-16"
+                className="input text-xs"
+                placeholder="Optional notes..."
               />
             </div>
-
-            <div className="flex justify-end gap-3 pt-2">
-              <button type="button" onClick={() => setModalOpen(false)} className="btn btn-ghost text-sm">Cancel</button>
-              <button disabled={submitting} type="submit" className="btn btn-primary text-sm">Save Holiday</button>
+            <div className="flex justify-end gap-2 pt-2">
+              <button type="button" onClick={() => setModalOpen(false)} className="btn-secondary text-xs">
+                Cancel
+              </button>
+              <button type="submit" disabled={submitting} className="btn-primary text-xs">
+                {submitting ? 'Adding...' : 'Add Holiday'}
+              </button>
             </div>
           </form>
         </Modal>
