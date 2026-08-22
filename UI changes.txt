@@ -1,0 +1,1130 @@
+Redesign the **frontend only** of my Employee Management System named **कार्यसेतु (Kaaryasetu)** using the **same overall visual feel, color balance, spacing quality, animation smoothness, and premium SaaS experience seen on Hajiri’s website**, while keeping the design original and not directly copying their assets or code.
+
+The goal is to make the website feel:
+
+**clean, premium, modern, smooth, minimal, professional, slightly playful, and highly polished**
+
+Do not change backend logic, database structure, or existing functionality unless required to connect frontend states correctly.
+
+---
+
+# 1. BRAND IDENTITY
+
+Website Name:
+
+**कार्यसेतु**
+
+Use Marathi prominently in the interface wherever suitable.
+
+Use the existing **कार्यसेतु logo** in:
+
+* Login page
+* Sidebar
+* Navbar
+* Dashboard header
+* Loading screen
+* Mobile navigation
+
+The brand should feel Indian, professional, employee-focused, and modern.
+
+Use the logo colors as the core UI inspiration.
+
+Primary palette should be based around:
+
+* Deep Navy Blue
+* Royal Blue
+* Warm Orange
+* Soft Gold
+* Off White
+* Very Light Gray
+* Muted Slate
+
+Avoid neon colors.
+
+Avoid random gradients.
+
+Avoid an overly colorful AI-generated dashboard appearance.
+
+---
+
+# 2. OVERALL VISUAL STYLE
+
+Create a premium SaaS HR dashboard inspired by Hajiri’s smooth and polished interface.
+
+Use:
+
+* Generous whitespace
+* Clean card layouts
+* Large rounded corners
+* Soft borders
+* Very subtle shadows
+* Gentle gradients only where required
+* Clean icons
+* Large readable typography
+* Strong section hierarchy
+* Smooth interactions
+* Balanced spacing
+
+The website must not look cluttered.
+
+Use a consistent spacing system such as:
+
+`4 / 8 / 12 / 16 / 20 / 24 / 32 / 40 / 48 px`
+
+Use consistent border radius:
+
+* Small controls: 10–12px
+* Buttons: 12–14px
+* Cards: 16–20px
+* Large panels: 20–24px
+
+---
+
+# 3. COLOR SYSTEM
+
+Use a controlled professional palette.
+
+### Primary
+
+Deep Navy:
+
+`#0B2D5C`
+
+Royal Blue:
+
+`#145DA0`
+
+### Accent
+
+Warm Orange:
+
+`#F59A23`
+
+Soft Gold:
+
+`#E7B44A`
+
+### Background
+
+Main background:
+
+`#F7F9FC`
+
+Card background:
+
+`#FFFFFF`
+
+Secondary background:
+
+`#F1F5F9`
+
+### Text
+
+Primary:
+
+`#172033`
+
+Secondary:
+
+`#64748B`
+
+Muted:
+
+`#94A3B8`
+
+### Status Colors
+
+Success:
+
+`#22A06B`
+
+Warning:
+
+`#F5A524`
+
+Error:
+
+`#E5484D`
+
+Info:
+
+`#3B82F6`
+
+Inactive:
+
+`#94A3B8`
+
+Do not use full bright colors as large backgrounds.
+
+Use tinted backgrounds for status badges.
+
+Example:
+
+Green text + very light green background.
+
+---
+
+# 4. TYPOGRAPHY
+
+Use a modern clean sans-serif font.
+
+Recommended:
+
+* Inter
+* Manrope
+* Plus Jakarta Sans
+
+For Marathi text, use a clean Devanagari-compatible font.
+
+Keep typography professional.
+
+Suggested sizes:
+
+Main Dashboard Heading:
+
+`28–32px`
+
+Page Heading:
+
+`24–28px`
+
+Card Title:
+
+`16–18px`
+
+Body:
+
+`14–16px`
+
+Small Labels:
+
+`12–13px`
+
+Use medium and semibold weights instead of making everything bold.
+
+---
+
+# 5. SIDEBAR DESIGN
+
+Create a polished fixed sidebar.
+
+Sidebar should include:
+
+* Logo
+* कार्यसेतु
+* Dashboard
+* Employees
+* Attendance
+* Leave Requests
+* Holidays
+* Payroll
+* Recruitment
+* Reports & Analytics
+* Settings
+
+Use simple outline icons.
+
+Default sidebar:
+
+White or very soft gray.
+
+Active navigation item:
+
+* Soft blue background
+* Navy/blue icon
+* Medium-weight label
+* Small rounded active indicator
+
+Hover behavior:
+
+* Background smoothly appears
+* Icon moves approximately 2px
+* Text color becomes stronger
+
+Transition:
+
+`180–220ms ease`
+
+Sidebar collapse/expand should animate smoothly.
+
+Do not abruptly change width.
+
+Use:
+
+`transition: width 280ms cubic-bezier(...)`
+
+---
+
+# 6. TOP NAVBAR
+
+Top navigation should remain minimal.
+
+Include:
+
+* Page title
+* Search
+* Notifications
+* User profile
+* Role label
+
+Optional:
+
+“नमस्कार, [Name]”
+
+Profile dropdown should animate using:
+
+* Fade
+* Slight downward movement
+* Scale from 0.98 to 1
+
+Duration:
+
+`180–220ms`
+
+---
+
+# 7. DASHBOARD HERO SECTION
+
+Do not immediately start with four generic KPI cards.
+
+Create a more premium opening section.
+
+Example:
+
+Left:
+
+**नमस्कार 👋**
+
+**कार्यसेतु मध्ये आपले स्वागत आहे**
+
+Small secondary line:
+
+“आजच्या कर्मचारी व्यवस्थापनाचा संक्षिप्त आढावा”
+
+Right:
+
+Current date / attendance quick action.
+
+Include a visually strong attendance card.
+
+---
+
+# 8. KPI CARDS
+
+Create dashboard KPI cards for:
+
+* Total Employees
+* Present Today
+* On Leave
+* Pending Requests
+* Monthly Payroll
+* Open Positions
+
+Cards should have:
+
+* Small icon
+* Label
+* Large number
+* Small change indicator
+* Optional tiny trend chart
+
+Do not make every card a different bright color.
+
+Use mostly white cards with colored icon containers.
+
+Example:
+
+Blue icon background:
+
+very light blue
+
+Green icon background:
+
+very light green
+
+Orange icon background:
+
+very light orange
+
+---
+
+# 9. KPI CARD ANIMATION
+
+When the dashboard loads:
+
+Cards should enter with:
+
+* Opacity 0 → 1
+* TranslateY 12px → 0
+
+Use stagger:
+
+Card 1: 0ms
+Card 2: 60ms
+Card 3: 120ms
+Card 4: 180ms
+
+Duration:
+
+`350–450ms`
+
+Do not use bouncing animations.
+
+Numbers should animate/count upward smoothly once.
+
+---
+
+# 10. CARD HOVER ANIMATION
+
+For clickable cards:
+
+On hover:
+
+* Move upward around 2–4px
+* Slightly increase shadow
+* Border becomes slightly stronger
+
+Example:
+
+`transform: translateY(-3px)`
+
+Duration:
+
+`200ms ease`
+
+Do not over-scale cards.
+
+Maximum scale:
+
+`1.01`
+
+---
+
+# 11. ATTENDANCE CARD
+
+This is one of the most important components.
+
+Create an elegant large attendance card.
+
+Display:
+
+* Current time
+* Today’s date
+* Check-in time
+* Check-out time
+* Working duration
+* Current status
+
+Before check-in:
+
+**काम सुरू करा**
+
+Button:
+
+**Check In**
+
+After check-in:
+
+Show:
+
+`✓ Checked in at 09:15 AM`
+
+A subtle animated working indicator.
+
+Button becomes:
+
+**Check Out**
+
+After checkout:
+
+Show:
+
+`आजचे काम पूर्ण`
+
+Check In: 09:15 AM
+Check Out: 06:05 PM
+Total: 8h 50m
+
+---
+
+# 12. ATTENDANCE BUTTON ANIMATION
+
+When Check-In or Check-Out is clicked:
+
+Button should:
+
+1. Slightly compress
+2. Show a small loader
+3. Transition into success state
+4. Display check icon
+
+Example:
+
+`scale(1) → scale(0.97) → scale(1)`
+
+Duration:
+
+Around 200ms.
+
+Success check icon should animate using a subtle stroke/draw effect.
+
+Do not use confetti.
+
+---
+
+# 13. LIVE WORKING INDICATOR
+
+After check-in, show:
+
+`● Working`
+
+The dot should use a soft pulse animation.
+
+Example:
+
+Opacity:
+
+`1 → 0.4 → 1`
+
+Scale:
+
+`1 → 1.15 → 1`
+
+Duration:
+
+`1.8s infinite`
+
+Keep it subtle.
+
+---
+
+# 14. EMPLOYEE MANAGEMENT PAGE
+
+Create a professional employee directory.
+
+Header:
+
+**कर्मचारी व्यवस्थापन**
+
+Actions:
+
+* Search
+* Filter
+* Department filter
+* Status filter
+* Add Employee
+
+Employee table should contain:
+
+* Avatar
+* Name
+* Employee ID
+* Department
+* Designation
+* Email
+* Status
+* Joining Date
+* Actions
+
+Use sticky table header where appropriate.
+
+---
+
+# 15. TABLE ANIMATIONS
+
+Rows should not animate aggressively.
+
+On hover:
+
+* Very subtle background change
+
+Action menu:
+
+Use fade + scale.
+
+Newly added employee:
+
+Allow a very subtle highlight animation once.
+
+---
+
+# 16. LEAVE REQUEST PAGE
+
+Use clear request cards/table.
+
+Statuses:
+
+Approved → Green
+Pending → Amber
+Rejected → Red
+Cancelled → Gray
+
+Include:
+
+* Employee
+* Leave type
+* Date range
+* Days
+* Reason
+* Status
+* Approval actions
+
+Approval modal should appear with:
+
+`opacity 0 → 1`
+
+and
+
+`scale(0.96) → 1`
+
+Duration:
+
+`220ms`
+
+---
+
+# 17. HOLIDAY PAGE
+
+Design holidays using a clean calendar + list layout.
+
+Use subtle markers for:
+
+* Public Holiday
+* Company Holiday
+* Optional Holiday
+* Weekend
+
+Upcoming holidays can appear as compact cards.
+
+Avoid making calendar dates overly colorful.
+
+---
+
+# 18. PAYROLL PAGE
+
+Create a polished financial dashboard feel.
+
+Display:
+
+* Basic Salary
+* Allowances
+* Bonus
+* Deductions
+* Tax
+* Net Salary
+
+Highlight Net Salary slightly more strongly.
+
+Use clean charts for monthly payroll trends.
+
+Paid:
+
+Green
+
+Pending:
+
+Amber
+
+Failed:
+
+Red
+
+Draft:
+
+Gray
+
+---
+
+# 19. RECRUITMENT PAGE
+
+Use a clean recruitment pipeline.
+
+Statuses:
+
+Applied
+Screening
+Interview
+Selected
+Rejected
+On Hold
+
+Optional Kanban board should have horizontal smooth drag interactions.
+
+Use subtle column backgrounds.
+
+Do not make each entire column a saturated color.
+
+Use status accents only.
+
+---
+
+# 20. REPORTS & ANALYTICS
+
+This page should feel premium.
+
+Include:
+
+* Employee Growth
+* Attendance Rate
+* Absenteeism
+* Leave Trends
+* Payroll Expense
+* Department Distribution
+* Recruitment Funnel
+* Turnover
+* New Hires
+
+Charts should animate when entering viewport.
+
+Line chart:
+
+Draw from left to right.
+
+Bar chart:
+
+Grow vertically.
+
+Donut chart:
+
+Animate arc once.
+
+Duration:
+
+`500–800ms`
+
+No looping chart animations.
+
+---
+
+# 21. FILTER INTERACTION
+
+Date filters, department filters, and report filters should update content smoothly.
+
+During loading:
+
+Do not use a full-screen spinner.
+
+Use skeleton placeholders or a subtle local loader.
+
+Content transition:
+
+`opacity 0.6 → 1`
+
+---
+
+# 22. MODALS
+
+All modal windows should use:
+
+Backdrop:
+
+soft translucent dark overlay with very light blur.
+
+Modal animation:
+
+`opacity 0 → 1`
+
+`translateY(8px) → 0`
+
+`scale(0.98) → 1`
+
+Duration:
+
+`200–250ms`
+
+Never make modals bounce.
+
+---
+
+# 23. DROPDOWNS
+
+Dropdown animation:
+
+* Fade
+* TranslateY(-4px → 0)
+* Slight scale
+
+Duration:
+
+`160–180ms`
+
+Dropdown menus should have:
+
+* White background
+* Soft shadow
+* 12–14px radius
+* Thin border
+
+---
+
+# 24. BUTTON SYSTEM
+
+Primary button:
+
+Navy/blue background
+White text
+
+Hover:
+
+Slightly darker
+
+Secondary:
+
+White background
+Subtle border
+
+Destructive:
+
+Red tint
+
+Buttons should never use excessive gradients.
+
+Button hover:
+
+`translateY(-1px)`
+
+Button press:
+
+`scale(0.97)`
+
+---
+
+# 25. PAGE TRANSITIONS
+
+When navigating between dashboard modules, use very subtle page transitions.
+
+New page:
+
+`opacity: 0 → 1`
+
+`translateY: 6px → 0`
+
+Duration:
+
+`250–320ms`
+
+Do not slide full screens horizontally.
+
+---
+
+# 26. SCROLL ANIMATIONS
+
+Only animate important sections once when entering the viewport.
+
+Use:
+
+* Fade up
+* Small translate
+* Stagger where useful
+
+Do not animate every table row during scrolling.
+
+---
+
+# 27. LOADING EXPERIENCE
+
+Create a branded initial loading state.
+
+Use the **कार्यसेतु logo**.
+
+Animation idea:
+
+* Logo fades in
+* Bridge/icon gets a subtle shimmer or line reveal
+* Then dashboard fades in
+
+Keep total loading animation short.
+
+Maximum:
+
+`800–1200ms`
+
+Do not delay page rendering artificially.
+
+---
+
+# 28. SKELETON LOADERS
+
+Use skeleton cards for:
+
+* Dashboard KPI cards
+* Employee table
+* Attendance
+* Reports
+
+Skeleton shimmer should be very subtle.
+
+Avoid harsh flashing.
+
+---
+
+# 29. TOAST NOTIFICATIONS
+
+Success toast:
+
+White card + green icon.
+
+Error:
+
+White card + red icon.
+
+Warning:
+
+White card + amber icon.
+
+Toast animation:
+
+Enter from top-right using:
+
+`translateX(20px) → 0`
+
+and fade.
+
+Exit smoothly.
+
+---
+
+# 30. EMPTY STATES
+
+Do not show blank tables.
+
+Example:
+
+No leave requests:
+
+Use a small minimal illustration/icon and:
+
+**सध्या कोणतीही रजा विनंती नाही**
+
+No employees:
+
+**अजून कर्मचारी जोडलेले नाहीत**
+
+Include relevant action button where useful.
+
+---
+
+# 31. ADMIN SETTINGS
+
+Design Settings with a professional two-column or tab layout.
+
+Sections:
+
+* General
+* User Management
+* Roles & Permissions
+* Security
+* Password Settings
+* Audit Logs
+
+Use clean segmented tabs or side navigation.
+
+Avoid placing every setting inside separate large cards.
+
+---
+
+# 32. PERMISSION MATRIX
+
+Create a highly usable permissions interface.
+
+Columns:
+
+* View
+* Add
+* Edit
+* Delete
+* Approve
+* Export
+
+Rows:
+
+* Employees
+* Attendance
+* Leave
+* Payroll
+* Recruitment
+* Reports
+* Settings
+
+Use toggles/checkmarks.
+
+Permission changes should animate subtly.
+
+---
+
+# 33. MOBILE RESPONSIVENESS
+
+Make the whole UI responsive.
+
+Desktop:
+
+Fixed sidebar.
+
+Tablet:
+
+Collapsible sidebar.
+
+Mobile:
+
+Bottom navigation or drawer.
+
+KPI cards should stack properly.
+
+Tables should use:
+
+* Horizontal scroll
+* Or responsive cards
+
+Do not allow overlapping components.
+
+---
+
+# 34. STRICT LAYOUT RULES
+
+Prevent UI formatting problems.
+
+Never allow:
+
+* Text overlapping icons
+* Cards overlapping other cards
+* Buttons overflowing containers
+* Charts escaping cards
+* Tables extending beyond viewport
+* Fixed headers covering content
+* Sidebar covering main content
+
+Use proper:
+
+* CSS Grid
+* Flexbox
+* `min-width: 0`
+* Responsive breakpoints
+* Overflow handling
+
+Every card must respect its parent container.
+
+---
+
+# 35. ANIMATION PERFORMANCE
+
+Use GPU-friendly properties:
+
+* transform
+* opacity
+
+Avoid animating:
+
+* width repeatedly
+* height repeatedly
+* top
+* left
+* box-shadow excessively
+
+Support:
+
+`prefers-reduced-motion`
+
+Disable or minimize non-essential animations when reduced motion is enabled.
+
+---
+
+# 36. ANIMATION LIBRARY
+
+If React is being used, prefer:
+
+**Framer Motion / Motion**
+
+Use it only for:
+
+* Page transitions
+* Modal transitions
+* Card reveal
+* Number entrance
+* Dropdowns
+* Presence animations
+
+Do not animate everything just because the library exists.
+
+---
+
+# 37. ICONS
+
+Use one consistent icon library.
+
+Recommended:
+
+**Lucide React**
+
+Do not mix:
+
+* Lucide
+* Font Awesome
+* Material Icons
+* Random SVG styles
+
+Use 18–22px icons for normal controls.
+
+---
+
+# 38. UI PERSONALITY
+
+The final interface should feel similar in quality to a professionally built modern Indian SaaS HR platform.
+
+It should feel:
+
+**Human-centered
+Professional
+Friendly
+Premium
+Fast
+Calm
+Interactive**
+
+Not:
+
+**Neon
+Cyberpunk
+Overly glassmorphic
+Over-animated
+Template-like
+AI-generated
+Cluttered**
+
+---
+
+# 39. IMPORTANT DESIGN PRINCIPLE
+
+Take inspiration from Hajiri’s:
+
+* Clean visual hierarchy
+* Smooth micro-interactions
+* Modern color balance
+* Spacious layouts
+* Premium SaaS feeling
+* Animation pacing
+* Polished cards
+* Soft interaction states
+
+However:
+
+**Do not directly copy their proprietary assets, illustrations, source code, exact page composition, or branding. Create an original कार्यसेतु interface with a similar level of polish and interaction quality.**
+
+---
+
+# 40. FINAL REQUIREMENT
+
+Do not redesign functionality unnecessarily.
+
+Focus on transforming the existing frontend into a polished **कार्यसेतु Employee Management System**.
+
+The finished frontend should make a user feel:
+
+**“This looks like a real, professionally designed HR SaaS product.”**
+
+Prioritize in this order:
+
+**Layout consistency → Color system → Typography → Component quality → Micro-interactions → Page animations → Responsiveness → Final polish**
+
+Every animation must be purposeful, subtle, and smooth.
+
+Avoid any overlapping or misaligned components at all screen sizes.
